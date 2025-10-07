@@ -1,0 +1,1022 @@
+[
+    {
+        "raw_code": "def dig(key, *other_keys)\n      super(convert_key(key), *other_keys)\n    end",
+        "comment": "Added in Ruby 2.3",
+        "label": "What",
+        "id": "1"
+    },
+    {
+        "raw_code": "def accept\n      @env['sinatra.accept'] ||= if @env.include?('HTTP_ACCEPT') && (@env['HTTP_ACCEPT'].to_s != '')\n                                   @env['HTTP_ACCEPT']\n                                     .to_s\n                                     .scan(HEADER_VALUE_WITH_PARAMS)\n                                     .map! { |e| AcceptEntry.new(e) }\n                                     .sort\n                                 else\n                                   [AcceptEntry.new('*/*')]\n                                 end",
+        "comment": "Returns an array of acceptable media types for the response",
+        "label": "Property",
+        "id": "2"
+    },
+    {
+        "raw_code": "def status(value = nil)\n      response.status = Rack::Utils.status_code(value) if value\n      response.status\n    end",
+        "comment": "Set or retrieve the response status code.",
+        "label": "Others",
+        "id": "3"
+    },
+    {
+        "raw_code": "def body(value = nil, &block)\n      if block_given?\n        def block.each; yield(call) end\n        response.body = block\n      elsif value\n        unless request.head? || value.is_a?(Rack::Files::BaseIterator) || value.is_a?(Stream)\n          headers.delete 'content-length'\n        end\n        response.body = value\n      else\n        response.body\n      end",
+        "comment": "Set or retrieve the response body. When a block is given, evaluation is deferred until the body is read with #each.",
+        "label": "Others",
+        "id": "4"
+    },
+    {
+        "raw_code": "def redirect(uri, *args)\n      # SERVER_PROTOCOL is required in Rack 3, fall back to HTTP_VERSION\n      # for servers not updated for Rack 3 (like Puma 5)\n      http_version = env['SERVER_PROTOCOL'] || env['HTTP_VERSION']\n      if (http_version == 'HTTP/1.1') && (env['REQUEST_METHOD'] != 'GET')\n        status 303\n      else\n        status 302\n      end",
+        "comment": "Halt processing and redirect to the URI provided.",
+        "label": "How-to-use",
+        "id": "5"
+    },
+    {
+        "raw_code": "def uri(addr = nil, absolute = true, add_script_name = true)\n      return addr if addr.to_s =~ /\\A[a-z][a-z0-9+.\\-]*:/i\n\n      uri = [host = String.new]\n      if absolute\n        host << \"http#{'s' if request.secure?}://\"\n        host << if request.forwarded? || (request.port != (request.secure? ? 443 : 80))\n                  request.host_with_port\n                else\n                  request.host\n                end",
+        "comment": "Generates the absolute URI for a given path in the app. Takes Rack routers and reverse proxies into account.",
+        "label": "What",
+        "id": "6"
+    },
+    {
+        "raw_code": "def error(code, body = nil)\n      if code.respond_to? :to_str\n        body = code.to_str\n        code = 500\n      end",
+        "comment": "Halt processing and return the error status provided.",
+        "label": "How-to-use",
+        "id": "7"
+    },
+    {
+        "raw_code": "def not_found(body = nil)\n      error 404, body\n    end",
+        "comment": "Halt processing and return a 404 Not Found.",
+        "label": "What",
+        "id": "8"
+    },
+    {
+        "raw_code": "def headers(hash = nil)\n      response.headers.merge! hash if hash\n      response.headers\n    end",
+        "comment": "Set multiple response headers with Hash.",
+        "label": "Others",
+        "id": "9"
+    },
+    {
+        "raw_code": "def session\n      request.session\n    end",
+        "comment": "Access the underlying Rack session.",
+        "label": "What",
+        "id": "10"
+    },
+    {
+        "raw_code": "def logger\n      request.logger\n    end",
+        "comment": "Access shared logger object.",
+        "label": "What",
+        "id": "11"
+    },
+    {
+        "raw_code": "def mime_type(type)\n      Base.mime_type(type)\n    end",
+        "comment": "Look up a media type by file extension in Rack's mime registry.",
+        "label": "How-to-use",
+        "id": "12"
+    },
+    {
+        "raw_code": "def content_type(type = nil, params = {})\n      return response['content-type'] unless type\n\n      default = params.delete :default\n      mime_type = mime_type(type) || default\n      raise format('Unknown media type: %p', type) if mime_type.nil?\n\n      mime_type = mime_type.dup\n      unless params.include?(:charset) || settings.add_charset.all? { |p| !(p === mime_type) }\n        params[:charset] = params.delete('charset') || settings.default_encoding\n      end",
+        "comment": "Set the content-type of the response body given a media type or file extension.",
+        "label": "What",
+        "id": "13"
+    },
+    {
+        "raw_code": "def attachment(filename = nil, disposition = :attachment)\n      response['Content-Disposition'] = disposition.to_s.dup\n      return unless filename\n\n      params = format('; filename=\"%s\"', File.basename(filename).gsub(/[\"\\r\\n]/, MULTIPART_FORM_DATA_REPLACEMENT_TABLE))\n      response['Content-Disposition'] << params\n      ext = File.extname(filename)\n      content_type(ext) unless response['content-type'] || ext.empty?\n    end",
+        "comment": "Set the Content-Disposition to \"attachment\" with the specified filename, instructing the user agents to prompt to save.",
+        "label": "What",
+        "id": "14"
+    },
+    {
+        "raw_code": "def send_file(path, opts = {})\n      if opts[:type] || !response['content-type']\n        content_type opts[:type] || File.extname(path), default: 'application/octet-stream'\n      end",
+        "comment": "Use the contents of the file at +path+ as the response body.",
+        "label": "How-to-use",
+        "id": "15"
+    },
+    {
+        "raw_code": "def stream(keep_open = false)\n      scheduler = env['async.callback'] ? EventMachine : Stream\n      current   = @params.dup\n      stream = if scheduler == Stream  && keep_open\n        Stream.new(scheduler, false) do |out|\n          until out.closed?\n            with_params(current) { yield(out) }\n          end",
+        "comment": "Allows to start sending data to the client even though later parts of the response body have not yet been generated.  The close parameter specifies whether Stream#close should be called after the block has been executed.",
+        "label": "How-to-use",
+        "id": "16"
+    },
+    {
+        "raw_code": "def cache_control(*values)\n      if values.last.is_a?(Hash)\n        hash = values.pop\n        hash.reject! { |_k, v| v == false }\n        hash.reject! { |k, v| values << k if v == true }\n      else\n        hash = {}\n      end",
+        "comment": "Specify response freshness policy for HTTP caches (Cache-Control header). Any number of non-value directives (:public, :private, :no_cache, :no_store, :must_revalidate, :proxy_revalidate) may be passed along with a Hash of value directives (:max_age, :s_maxage).  cache_control :public, :must_revalidate, :max_age => 60 => Cache-Control: public, must-revalidate, max-age=60  See RFC 2616 / 14.9 for more on standard cache control directives: http://tools.ietf.org/html/rfc2616#section-14.9.1",
+        "label": "What",
+        "id": "17"
+    },
+    {
+        "raw_code": "def expires(amount, *values)\n      values << {} unless values.last.is_a?(Hash)\n\n      if amount.is_a? Integer\n        time    = Time.now + amount.to_i\n        max_age = amount\n      else\n        time    = time_for amount\n        max_age = time - Time.now\n      end",
+        "comment": "Set the Expires header and Cache-Control/max-age directive. Amount can be an integer number of seconds in the future or a Time object indicating when the response should be considered \"stale\". The remaining \"values\" arguments are passed to the #cache_control helper:  expires 500, :public, :must_revalidate => Cache-Control: public, must-revalidate, max-age=500 => Expires: Mon, 08 Jun 2009 08:50:17 GMT ",
+        "label": "What",
+        "id": "18"
+    },
+    {
+        "raw_code": "def last_modified(time)\n      return unless time\n\n      time = time_for time\n      response['Last-Modified'] = time.httpdate\n      return if env['HTTP_IF_NONE_MATCH']\n\n      if (status == 200) && env['HTTP_IF_MODIFIED_SINCE']\n        # compare based on seconds since epoch\n        since = Time.httpdate(env['HTTP_IF_MODIFIED_SINCE']).to_i\n        halt 304 if since >= time.to_i\n      end",
+        "comment": "Set the last modified time of the resource (HTTP 'Last-Modified' header) and halt if conditional GET matches. The +time+ argument is a Time, DateTime, or other object that responds to +to_time+.  When the current request includes an 'If-Modified-Since' header that is equal or later than the time specified, execution is immediately halted with a '304 Not Modified' response.",
+        "label": "Property",
+        "id": "19"
+    },
+    {
+        "raw_code": "def etag(value, options = {})\n      # Before touching this code, please double check RFC 2616 14.24 and 14.26.\n      options      = { kind: options } unless Hash === options\n      kind         = options[:kind] || :strong\n      new_resource = options.fetch(:new_resource) { request.post? }\n\n      unless ETAG_KINDS.include?(kind)\n        raise ArgumentError, ':strong or :weak expected'\n      end",
+        "comment": "Set the response entity tag (HTTP 'ETag' header) and halt if conditional GET matches. The +value+ argument is an identifier that uniquely identifies the current version of the resource. The +kind+ argument indicates whether the etag should be used as a :strong (default) or :weak cache validator.  When the current request includes an 'If-None-Match' header with a matching etag, execution is immediately halted. If the request method is GET or HEAD, a '304 Not Modified' response is sent.",
+        "label": "Property",
+        "id": "20"
+    },
+    {
+        "raw_code": "def back\n      request.referer\n    end",
+        "comment": "Sugar for redirect (example:  redirect back)",
+        "label": "What",
+        "id": "21"
+    },
+    {
+        "raw_code": "def informational?\n      status.between? 100, 199\n    end",
+        "comment": "whether or not the status is set to 1xx",
+        "label": "What",
+        "id": "22"
+    },
+    {
+        "raw_code": "def success?\n      status.between? 200, 299\n    end",
+        "comment": "whether or not the status is set to 2xx",
+        "label": "What",
+        "id": "23"
+    },
+    {
+        "raw_code": "def redirect?\n      status.between? 300, 399\n    end",
+        "comment": "whether or not the status is set to 3xx",
+        "label": "What",
+        "id": "24"
+    },
+    {
+        "raw_code": "def client_error?\n      status.between? 400, 499\n    end",
+        "comment": "whether or not the status is set to 4xx",
+        "label": "What",
+        "id": "25"
+    },
+    {
+        "raw_code": "def server_error?\n      status.between? 500, 599\n    end",
+        "comment": "whether or not the status is set to 5xx",
+        "label": "What",
+        "id": "26"
+    },
+    {
+        "raw_code": "def not_found?\n      status == 404\n    end",
+        "comment": "whether or not the status is set to 404",
+        "label": "What",
+        "id": "27"
+    },
+    {
+        "raw_code": "def bad_request?\n      status == 400\n    end",
+        "comment": "whether or not the status is set to 400",
+        "label": "What",
+        "id": "28"
+    },
+    {
+        "raw_code": "def time_for(value)\n      if value.is_a? Numeric\n        Time.at value\n      elsif value.respond_to? :to_s\n        Time.parse value.to_s\n      else\n        value.to_time\n      end",
+        "comment": "Generates a Time object from the given value. Used by #expires and #last_modified.",
+        "label": "What",
+        "id": "29"
+    },
+    {
+        "raw_code": "def etag_matches?(list, new_resource = request.post?)\n      return !new_resource if list == '*'\n\n      list.to_s.split(/\\s*,\\s*/).include? response['ETag']\n    end",
+        "comment": "Helper method checking if a ETag value list includes the current ETag.",
+        "label": "How-to-use",
+        "id": "30"
+    },
+    {
+        "raw_code": "def find_template(views, name, engine)\n      yield ::File.join(views, \"#{name}.#{@preferred_extension}\")\n\n      Tilt.default_mapping.extensions_for(engine).each do |ext|\n        yield ::File.join(views, \"#{name}.#{ext}\") unless ext == @preferred_extension\n      end",
+        "comment": "Calls the given block for every possible template file in views, named name.ext, where ext is registered on engine.",
+        "label": "How-to-use",
+        "id": "31"
+    },
+    {
+        "raw_code": "def render_ruby(engine, template, options = {}, locals = {}, &block)\n      if template.is_a?(Hash)\n        options = template\n        template = nil\n      end",
+        "comment": "logic shared between builder and nokogiri",
+        "label": "What",
+        "id": "32"
+    },
+    {
+        "raw_code": "def fetch(*key)\n      @cache.fetch(key) do\n        @cache[key] = yield\n      end",
+        "comment": "Caches a value for key, or returns the previously cached value. If a value has been previously cached for key then it is returned. Otherwise, block is yielded to and its return value which may be nil, is cached under key and returned.",
+        "label": "Property",
+        "id": "33"
+    },
+    {
+        "raw_code": "def clear\n      @cache = {}\n    end",
+        "comment": "Clears the cache.",
+        "label": "What",
+        "id": "34"
+    },
+    {
+        "raw_code": "def call(env)\n      dup.call!(env)\n    end",
+        "comment": "Rack call interface.",
+        "label": "How-to-use",
+        "id": "35"
+    },
+    {
+        "raw_code": "def self.settings\n      self\n    end",
+        "comment": "Access settings defined with Base.set.",
+        "label": "What",
+        "id": "36"
+    },
+    {
+        "raw_code": "def settings\n      self.class.settings\n    end",
+        "comment": "Access settings defined with Base.set.",
+        "label": "What",
+        "id": "37"
+    },
+    {
+        "raw_code": "def halt(*response)\n      response = response.first if response.length == 1\n      throw :halt, response\n    end",
+        "comment": "Exit the current block, halts any further processing of the request, and returns the specified response.",
+        "label": "Property",
+        "id": "38"
+    },
+    {
+        "raw_code": "def pass(&block)\n      throw :pass, block\n    end",
+        "comment": "Pass control to the next matching route. If there are no more matching routes, Sinatra will return a 404 response.",
+        "label": "Property",
+        "id": "39"
+    },
+    {
+        "raw_code": "def forward\n      raise 'downstream app not set' unless @app.respond_to? :call\n\n      status, headers, body = @app.call env\n      @response.status = status\n      @response.body = body\n      @response.headers.merge! headers\n      nil\n    end",
+        "comment": "Forward the request to the downstream app -- middleware only.",
+        "label": "What",
+        "id": "40"
+    },
+    {
+        "raw_code": "def filter!(type, base = settings, &block)\n      filter!(type, base.superclass, &block) if base.superclass.respond_to?(:filters)\n      base.filters[type].each do |args|\n        result = process_route(*args)\n        block.call(result) if block_given?\n      end",
+        "comment": "Run filters defined on the class and all superclasses. Accepts an optional block to call after each filter is applied.",
+        "label": "How-to-use",
+        "id": "41"
+    },
+    {
+        "raw_code": "def route!(base = settings, pass_block = nil)\n      routes = base.routes[@request.request_method]\n\n      routes&.each do |pattern, conditions, block|\n        response.delete_header('content-type') unless @pinned_response\n\n        returned_pass_block = process_route(pattern, conditions) do |*args|\n          env['sinatra.route'] = \"#{@request.request_method} #{pattern}\"\n          route_eval { block[*args] }\n        end",
+        "comment": "Run routes defined on the class and all superclasses.",
+        "label": "What",
+        "id": "42"
+    },
+    {
+        "raw_code": "def route_eval\n      throw :halt, yield\n    end",
+        "comment": "Run a route block and throw :halt with the result.",
+        "label": "What",
+        "id": "43"
+    },
+    {
+        "raw_code": "def process_route(pattern, conditions, block = nil, values = [])\n      route = @request.path_info\n      route = route[0..-2] if !settings.strict_paths? && route != '/' && route.end_with?('/')\n\n      params = pattern.params(route)\n      return unless params\n\n      params.delete('ignore') # TODO: better params handling, maybe turn it into \"smart\" object or detect changes\n      force_encoding(params)\n      @params = @params.merge(params) { |_k, v1, v2| v2 || v1 } if params.any?\n\n      regexp_exists = pattern.is_a?(Mustermann::Regular) || (pattern.respond_to?(:patterns) && pattern.patterns.any? { |subpattern| subpattern.is_a?(Mustermann::Regular) })\n      if regexp_exists\n        captures           = pattern.match(route).captures.map { |c| URI_INSTANCE.unescape(c) if c }\n        values            += captures\n        @params[:captures] = force_encoding(captures) unless captures.nil? || captures.empty?\n      else\n        values += params.values.flatten\n      end",
+        "comment": "If the current request matches pattern and conditions, fill params with keys and call the given block. Revert params afterwards.  Returns pass block.",
+        "label": "How-to-use",
+        "id": "44"
+    },
+    {
+        "raw_code": "def route_missing\n      raise NotFound unless @app\n\n      forward\n    end",
+        "comment": "No matching route was found or all routes passed. The default implementation is to forward the request downstream when running as middleware (@app is non-nil); when no downstream app is set, raise a NotFound exception. Subclasses can override this method to perform custom route miss logic.",
+        "label": "What",
+        "id": "45"
+    },
+    {
+        "raw_code": "def static!(options = {})\n      return if (public_dir = settings.public_folder).nil?\n\n      path = \"#{public_dir}#{URI_INSTANCE.unescape(request.path_info)}\"\n      return unless valid_path?(path)\n\n      path = File.expand_path(path)\n      return unless path.start_with?(\"#{File.expand_path(public_dir)}/\")\n\n      return unless File.file?(path)\n\n      env['sinatra.static_file'] = path\n      cache_control(*settings.static_cache_control) if settings.static_cache_control?\n\n      headers(settings.static_headers) if settings.static_headers?\n\n      send_file path, options.merge(disposition: nil)\n    end",
+        "comment": "Attempt to serve static files from public directory. Throws :halt when a matching file is found, returns nil otherwise. If custom static headers are defined, use them.",
+        "label": "Property",
+        "id": "46"
+    },
+    {
+        "raw_code": "def invoke(&block)\n      res = catch(:halt, &block)\n\n      res = [res] if (Integer === res) || (String === res)\n      if (Array === res) && (Integer === res.first)\n        res = res.dup\n        status(res.shift)\n        body(res.pop)\n        headers(*res)\n      elsif res.respond_to? :each\n        body res\n      end",
+        "comment": "Run the block with 'throw :halt' support and apply result to the response.",
+        "label": "What",
+        "id": "47"
+    },
+    {
+        "raw_code": "def dispatch!\n      # Avoid passing frozen string in force_encoding\n      @params.merge!(@request.params).each do |key, val|\n        next unless val.respond_to?(:force_encoding)\n\n        val = val.dup if val.frozen?\n        @params[key] = force_encoding(val)\n      end",
+        "comment": "Dispatch a request with error handling.",
+        "label": "What",
+        "id": "48"
+    },
+    {
+        "raw_code": "def handle_exception!(boom)\n      error_params = @env['sinatra.error.params']\n\n      @params = @params.merge(error_params) if error_params\n\n      @env['sinatra.error'] = boom\n\n      http_status = if boom.is_a? Sinatra::Error\n                      if boom.respond_to? :http_status\n                        boom.http_status\n                      elsif settings.use_code? && boom.respond_to?(:code)\n                        boom.code\n                      end",
+        "comment": "Error handling during requests.",
+        "label": "Why",
+        "id": "49"
+    },
+    {
+        "raw_code": "def error_block!(key, *block_params)\n      base = settings\n      while base.respond_to?(:errors)\n        args_array = base.errors[key]\n\n        next base = base.superclass unless args_array\n\n        args_array.reverse_each do |args|\n          first = args == args_array.first\n          args += [block_params]\n          resp = process_route(*args)\n          return resp unless resp.nil? && !first\n        end",
+        "comment": "Find an custom error block for the key(s) specified.",
+        "label": "How-to-use",
+        "id": "50"
+    },
+    {
+        "raw_code": "def reset!\n        @conditions     = []\n        @routes         = {}\n        @filters        = { before: [], after: [] }\n        @errors         = {}\n        @middleware     = []\n        @prototype      = nil\n        @extensions     = []\n\n        @templates = if superclass.respond_to?(:templates)\n                       Hash.new { |_hash, key| superclass.templates[key] }\n                     else\n                       {}\n                     end",
+        "comment": "Removes all routes, filters, middleware and extension hooks from the current class (not routes/filters/... defined by its superclass).",
+        "label": "What",
+        "id": "51"
+    },
+    {
+        "raw_code": "def extensions\n        if superclass.respond_to?(:extensions)\n          (@extensions + superclass.extensions).uniq\n        else\n          @extensions\n        end",
+        "comment": "Extension modules registered on this class and all superclasses.",
+        "label": "What",
+        "id": "52"
+    },
+    {
+        "raw_code": "def middleware\n        if superclass.respond_to?(:middleware)\n          superclass.middleware + @middleware\n        else\n          @middleware\n        end",
+        "comment": "Middleware used in this class and all superclasses.",
+        "label": "What",
+        "id": "53"
+    },
+    {
+        "raw_code": "def set(option, value = (not_set = true), ignore_setter = false, &block)\n        raise ArgumentError if block && !not_set\n\n        if block\n          value = block\n          not_set = false\n        end",
+        "comment": "Sets an option to the given value.  If the value is a proc, the proc will be called every time the option is accessed.",
+        "label": "How-to-use",
+        "id": "54"
+    },
+    {
+        "raw_code": "def enable(*opts)\n        opts.each { |key| set(key, true) }\n      end",
+        "comment": "Same as calling `set :option, true` for each of the given options.",
+        "label": "How-to-use",
+        "id": "55"
+    },
+    {
+        "raw_code": "def disable(*opts)\n        opts.each { |key| set(key, false) }\n      end",
+        "comment": "Same as calling `set :option, false` for each of the given options.",
+        "label": "How-to-use",
+        "id": "56"
+    },
+    {
+        "raw_code": "def error(*codes, &block)\n        args  = compile! 'ERROR', /.*/, block\n        codes = codes.flat_map(&method(:Array))\n        codes << Exception if codes.empty?\n        codes << Sinatra::NotFound if codes.include?(404)\n        codes.each { |c| (@errors[c] ||= []) << args }\n      end",
+        "comment": "Define a custom error handler. Optionally takes either an Exception class, or an HTTP status code to specify which errors should be handled.",
+        "label": "What",
+        "id": "57"
+    },
+    {
+        "raw_code": "def not_found(&block)\n        error(404, &block)\n      end",
+        "comment": "Sugar for `error(404) { ... }`",
+        "label": "What",
+        "id": "58"
+    },
+    {
+        "raw_code": "def template(name, &block)\n        filename, line = caller_locations.first\n        templates[name] = [block, filename, line.to_i]\n      end",
+        "comment": "Define a named template. The block must return the template source.",
+        "label": "What",
+        "id": "59"
+    },
+    {
+        "raw_code": "def layout(name = :layout, &block)\n        template name, &block\n      end",
+        "comment": "Define the layout template. The block must return the template source.",
+        "label": "What",
+        "id": "60"
+    },
+    {
+        "raw_code": "def inline_templates=(file = nil)\n        file = (caller_files.first || File.expand_path($0)) if file.nil? || file == true\n\n        begin\n          io = ::IO.respond_to?(:binread) ? ::IO.binread(file) : ::IO.read(file)\n          app, data = io.gsub(\"\\r\\n\", \"\\n\").split(/^__END__$/, 2)\n        rescue Errno::ENOENT\n          app, data = nil\n        end",
+        "comment": "Load embedded templates from the file; uses the caller's __FILE__ when no file is specified.",
+        "label": "How-to-use",
+        "id": "61"
+    },
+    {
+        "raw_code": "def mime_type(type, value = nil)\n        return type      if type.nil?\n        return type.to_s if type.to_s.include?('/')\n\n        type = \".#{type}\" unless type.to_s[0] == '.'\n        return Rack::Mime.mime_type(type, nil) unless value\n\n        Rack::Mime::MIME_TYPES[type] = value\n      end",
+        "comment": "Lookup or register a mime type in Rack's mime registry.",
+        "label": "How-to-use",
+        "id": "62"
+    },
+    {
+        "raw_code": "def mime_types(type)\n        type = mime_type type\n        if type =~ %r{^application/(xml|javascript)$}\n          [type, \"text/#{$1}\"]\n        elsif type =~ %r{^text/(xml|javascript)$}\n          [type, \"application/#{$1}\"]\n        else\n          [type]\n        end",
+        "comment": "provides all mime types matching type, including deprecated types: mime_types :html # => ['text/html'] mime_types :js   # => ['application/javascript', 'text/javascript']",
+        "label": "What",
+        "id": "63"
+    },
+    {
+        "raw_code": "def before(path = /.*/, **options, &block)\n        add_filter(:before, path, **options, &block)\n      end",
+        "comment": "Define a before filter; runs before all requests within the same context as route handlers and may access/modify the request and response.",
+        "label": "Property",
+        "id": "64"
+    },
+    {
+        "raw_code": "def after(path = /.*/, **options, &block)\n        add_filter(:after, path, **options, &block)\n      end",
+        "comment": "Define an after filter; runs after all requests within the same context as route handlers and may access/modify the request and response.",
+        "label": "Property",
+        "id": "65"
+    },
+    {
+        "raw_code": "def add_filter(type, path = /.*/, **options, &block)\n        filters[type] << compile!(type, path, block, **options)\n      end",
+        "comment": "add a filter",
+        "label": "Property",
+        "id": "66"
+    },
+    {
+        "raw_code": "def condition(name = \"#{caller.first[/`.*'/]} condition\", &block)\n        @conditions << generate_method(name, &block)\n      end",
+        "comment": "Add a route condition. The route is considered non-matching when the block returns false.",
+        "label": "Property",
+        "id": "67"
+    },
+    {
+        "raw_code": "def get(path, opts = {}, &block)\n        conditions = @conditions.dup\n        route('GET', path, opts, &block)\n\n        @conditions = conditions\n        route('HEAD', path, opts, &block)\n      end",
+        "comment": "Defining a `GET` handler also automatically defines a `HEAD` handler.",
+        "label": "How-to-use",
+        "id": "68"
+    },
+    {
+        "raw_code": "def warn_for_deprecation(message)\n        warn message + \"\\n\\tfrom #{cleaned_caller.first.join(':')}\"\n      end",
+        "comment": "used for deprecation warnings",
+        "label": "Why",
+        "id": "69"
+    },
+    {
+        "raw_code": "def cleaned_caller(keep = 3)\n        caller(1)\n          .map! { |line| line.split(/:(?=\\d|in )/, 3)[0, keep] }\n          .reject { |file, *_| callers_to_ignore.any? { |pattern| file =~ pattern } }\n      end",
+        "comment": "Like Kernel#caller but excluding certain magic entries",
+        "label": "How-to-use",
+        "id": "70"
+    },
+    {
+        "raw_code": "def self.force_encoding(data, encoding = default_encoding)\n      return if data == settings || data.is_a?(Tempfile)\n\n      if data.respond_to? :force_encoding\n        data.force_encoding(encoding).encode!\n      elsif data.respond_to? :each_value\n        data.each_value { |v| force_encoding(v, encoding) }\n      elsif data.respond_to? :each\n        data.each { |v| force_encoding(v, encoding) }\n      end",
+        "comment": "Force data to specified encoding. It defaults to settings.default_encoding which is UTF-8 by default",
+        "label": "Property",
+        "id": "71"
+    },
+    {
+        "raw_code": "def self.new(base = Base, &block)\n    base = Class.new(base)\n    base.class_eval(&block) if block_given?\n    base\n  end",
+        "comment": "Create a new Sinatra application; the block is evaluated in the class scope.",
+        "label": "What",
+        "id": "72"
+    },
+    {
+        "raw_code": "def self.register(*extensions, &block)\n    Delegator.target.register(*extensions, &block)\n  end",
+        "comment": "Extend the top-level DSL with the modules provided.",
+        "label": "Others",
+        "id": "73"
+    },
+    {
+        "raw_code": "def self.helpers(*extensions, &block)\n    Delegator.target.helpers(*extensions, &block)\n  end",
+        "comment": "Include the helper modules provided in Sinatra's request context.",
+        "label": "What",
+        "id": "74"
+    },
+    {
+        "raw_code": "def self.use(*args, &block)\n    Delegator.target.use(*args, &block)\n  end",
+        "comment": "Use the middleware for classic applications.",
+        "label": "What",
+        "id": "75"
+    },
+    {
+        "raw_code": "def valid_token?(env, token)\n        return false if token.nil? || !token.is_a?(String) || token.empty?\n\n        session = session(env)\n\n        begin\n          token = decode_token(token)\n        rescue ArgumentError # encoded_masked_token is invalid Base64\n          return false\n        end",
+        "comment": "Checks the client's masked token to see if it matches the session token.",
+        "label": "What",
+        "id": "76"
+    },
+    {
+        "raw_code": "def mask_token(token)\n        one_time_pad = SecureRandom.random_bytes(token.length)\n        encrypted_token = xor_byte_strings(one_time_pad, token)\n        masked_token = one_time_pad + encrypted_token\n        encode_token(masked_token)\n      end",
+        "comment": "Creates a masked version of the authenticity token that varies on each request. The masking is used to mitigate SSL attacks like BREACH.",
+        "label": "How-it-is-done",
+        "id": "77"
+    },
+    {
+        "raw_code": "def unmask_token(masked_token)\n        # Split the token into the one-time pad and the encrypted\n        # value and decrypt it\n        token_length = masked_token.length / 2\n        one_time_pad = masked_token[0...token_length]\n        encrypted_token = masked_token[token_length..]\n        xor_byte_strings(one_time_pad, encrypted_token)\n      end",
+        "comment": "Essentially the inverse of +mask_token+.",
+        "label": "What",
+        "id": "78"
+    },
+    {
+        "raw_code": "def self.for(app)\n          @app_list_map[app]\n        end",
+        "comment": "Returns the +List+ for the application +app+.",
+        "label": "Property",
+        "id": "79"
+    },
+    {
+        "raw_code": "def initialize\n          @path_watcher_map = Hash.new do |hash, key|\n            hash[key] = Watcher.new(key)\n          end",
+        "comment": "Creates a new +List+ instance.",
+        "label": "How-it-is-done",
+        "id": "80"
+    },
+    {
+        "raw_code": "def watch(path, element)\n          watcher_for(path).elements << element\n        end",
+        "comment": "Lets the +Watcher+ for the file located at +path+ know that the +element+ is defined there, and adds the +Watcher+ to the +List+, if it isn't already there.",
+        "label": "Property",
+        "id": "81"
+    },
+    {
+        "raw_code": "def ignore(path)\n          watcher_for(path).ignore\n        end",
+        "comment": "Tells the +Watcher+ for the file located at +path+ to ignore the file changes, and adds the +Watcher+ to the +List+, if it isn't already there.",
+        "label": "Property",
+        "id": "82"
+    },
+    {
+        "raw_code": "def watcher_for(path)\n          @path_watcher_map[File.expand_path(path)]\n        end",
+        "comment": "Adds a +Watcher+ for the file located at +path+ to the +List+, if it isn't already there.",
+        "label": "Property",
+        "id": "83"
+    },
+    {
+        "raw_code": "def watchers\n          @path_watcher_map.values\n        end",
+        "comment": "Returns an array with all the watchers in the +List+.",
+        "label": "Property",
+        "id": "84"
+    },
+    {
+        "raw_code": "def updated\n          watchers.find_all(&:updated?)\n        end",
+        "comment": "Returns an array with all the watchers in the +List+ that have been updated.",
+        "label": "Property",
+        "id": "85"
+    },
+    {
+        "raw_code": "def initialize(path)\n        @ignore = nil\n        @path = path\n        @elements = []\n        update\n      end",
+        "comment": "Creates a new +Watcher+ instance for the file located at +path+.",
+        "label": "How-it-is-done",
+        "id": "86"
+    },
+    {
+        "raw_code": "def updated?\n        !ignore? && !removed? && mtime != File.mtime(path)\n      end",
+        "comment": "Indicates whether or not the file being watched has been modified.",
+        "label": "What",
+        "id": "87"
+    },
+    {
+        "raw_code": "def update\n        @mtime = File.mtime(path)\n      end",
+        "comment": "Updates the mtime of the file being watched.",
+        "label": "What",
+        "id": "88"
+    },
+    {
+        "raw_code": "def inline_templates?\n        elements.any? { |element| element.type == :inline_templates }\n      end",
+        "comment": "Indicates whether or not the file being watched has inline templates.",
+        "label": "Why",
+        "id": "89"
+    },
+    {
+        "raw_code": "def ignore\n        @ignore = true\n      end",
+        "comment": "Informs that the modifications to the file being watched should be ignored.",
+        "label": "Why",
+        "id": "90"
+    },
+    {
+        "raw_code": "def ignore?\n        !!@ignore\n      end",
+        "comment": "Indicates whether or not the modifications to the file being watched should be ignored.",
+        "label": "Why",
+        "id": "91"
+    },
+    {
+        "raw_code": "def removed?\n        !File.exist?(path)\n      end",
+        "comment": "Indicates whether or not the file being watched has been removed.",
+        "label": "What",
+        "id": "92"
+    },
+    {
+        "raw_code": "def self.registered(klass)\n      @reloader_loaded_in ||= {}\n      return if @reloader_loaded_in[klass]\n\n      @reloader_loaded_in[klass] = true\n\n      klass.extend BaseMethods\n      klass.extend ExtensionMethods\n      klass.set(:reloader) { klass.development? }\n      klass.set(:reload_templates) { klass.reloader? }\n      klass.before do\n        if klass.reloader?\n          MUTEX_FOR_PERFORM.synchronize { Reloader.perform(klass) }\n        end",
+        "comment": "When the extension is registered it extends the Sinatra application +klass+ with the modules +BaseMethods+ and +ExtensionMethods+ and defines a before filter to +perform+ the reload of the modified files.",
+        "label": "What",
+        "id": "93"
+    },
+    {
+        "raw_code": "def self.perform(klass)\n      reloaded_paths = []\n      Watcher::List.for(klass).updated.each do |watcher|\n        klass.set(:inline_templates, watcher.path) if watcher.inline_templates?\n        watcher.elements.each { |element| klass.deactivate(element) }\n        # Deletes all old elements.\n        watcher.elements.delete_if { true }\n        $LOADED_FEATURES.delete(watcher.path)\n        require watcher.path\n        watcher.update\n        reloaded_paths << watcher.path\n      end",
+        "comment": "Reloads the modified files, adding, updating and removing the needed elements.",
+        "label": "Others",
+        "id": "94"
+    },
+    {
+        "raw_code": "def run!(*args)\n        if settings.reloader?\n          super unless running?\n        else\n          super\n        end",
+        "comment": "Protects Sinatra::Base.run! from being called more than once.",
+        "label": "How-to-use",
+        "id": "95"
+    },
+    {
+        "raw_code": "def compile!(verb, path, block, **options)\n        source_location = block.respond_to?(:source_location) ?\n          block.source_location.first : caller_files[1]\n        signature = super\n        watch_element(\n          source_location, :route, { verb: verb, signature: signature }\n        )\n        signature\n      end",
+        "comment": "Does everything Sinatra::Base#route does, but it also tells the +Watcher::List+ for the Sinatra application to watch the defined route.  Note: We are using #compile! so we don't interfere with extensions changing #route.",
+        "label": "How-it-is-done",
+        "id": "96"
+    },
+    {
+        "raw_code": "def inline_templates=(file = nil)\n        file = (caller_files[1] || File.expand_path($0)) if file.nil? || file == true\n        watch_element(file, :inline_templates)\n        super\n      end",
+        "comment": "Does everything Sinatra::Base#inline_templates= does, but it also tells the +Watcher::List+ for the Sinatra application to watch the inline templates in +file+ or the file who made the call to this method.",
+        "label": "How-to-use",
+        "id": "97"
+    },
+    {
+        "raw_code": "def use(middleware, *args, &block)\n        path = caller_files[1] || File.expand_path($0)\n        watch_element(path, :middleware, [middleware, args, block])\n        super\n      end",
+        "comment": "Does everything Sinatra::Base#use does, but it also tells the +Watcher::List+ for the Sinatra application to watch the middleware being used.",
+        "label": "How-it-is-done",
+        "id": "98"
+    },
+    {
+        "raw_code": "def add_filter(type, path = nil, **options, &block)\n        source_location = block.respond_to?(:source_location) ?\n          block.source_location.first : caller_files[1]\n        result = super\n        watch_element(source_location, :\"#{type}_filter\", filters[type].last)\n        result\n      end",
+        "comment": "Does everything Sinatra::Base#add_filter does, but it also tells the +Watcher::List+ for the Sinatra application to watch the defined filter.",
+        "label": "How-it-is-done",
+        "id": "99"
+    },
+    {
+        "raw_code": "def error(*codes, &block)\n        path = caller_files[1] || File.expand_path($0)\n        result = super\n        codes.each do |c|\n          watch_element(path, :error, code: c, handler: @errors[c])\n        end",
+        "comment": "Does everything Sinatra::Base#error does, but it also tells the +Watcher::List+ for the Sinatra application to watch the defined error handler.",
+        "label": "How-it-is-done",
+        "id": "100"
+    },
+    {
+        "raw_code": "def register(*extensions, &block)\n        start_registering_extension\n        result = super\n        stop_registering_extension\n        result\n      end",
+        "comment": "Does everything Sinatra::Base#register does, but it also lets the reloader know that an extension is being registered, because the elements defined in its +registered+ method need a special treatment.",
+        "label": "Why",
+        "id": "101"
+    },
+    {
+        "raw_code": "def inherited(subclass)\n        result = super\n        subclass.register Sinatra::Reloader\n        result\n      end",
+        "comment": "Does everything Sinatra::Base#register does and then registers the reloader in the +subclass+.",
+        "label": "How-it-is-done",
+        "id": "102"
+    },
+    {
+        "raw_code": "def deactivate(element)\n        case element.type\n        when :route\n          verb      = element.representation[:verb]\n          signature = element.representation[:signature]\n          (routes[verb] ||= []).delete(signature)\n        when :middleware\n          @middleware.delete(element.representation)\n        when :before_filter\n          filters[:before].delete(element.representation)\n        when :after_filter\n          filters[:after].delete(element.representation)\n        when :error\n          code    = element.representation[:code]\n          handler = element.representation[:handler]\n          @errors.delete(code) if @errors[code] == handler\n        end",
+        "comment": "Removes the +element+ from the Sinatra application.",
+        "label": "Others",
+        "id": "103"
+    },
+    {
+        "raw_code": "def also_reload(*glob)\n        Dir[*glob].each { |path| Watcher::List.for(self).watch_file(path) }\n      end",
+        "comment": "Indicates with a +glob+ which files should be reloaded if they have been modified.  It can be called several times.",
+        "label": "How-to-use",
+        "id": "104"
+    },
+    {
+        "raw_code": "def dont_reload(*glob)\n        Dir[*glob].each { |path| Watcher::List.for(self).ignore(path) }\n      end",
+        "comment": "Indicates with a +glob+ which files should not be reloaded even if they have been modified.  It can be called several times.",
+        "label": "How-to-use",
+        "id": "105"
+    },
+    {
+        "raw_code": "def register_path; @register_path ||= nil; end\n\n      # Indicates an extension is being registered.\n      def start_registering_extension\n        @register_path = caller_files[2]\n      end\n\n      # Indicates the extension has already been registered.\n      def stop_registering_extension\n        @register_path = nil\n      end\n\n      # Indicates whether or not an extension is being registered.\n      def registering_extension?\n        !register_path.nil?\n      end\n\n      # Builds a Watcher::Element from +type+ and +representation+ and\n      # tells the Watcher::List for the current application to watch it\n      # in the file located at +path+.\n      #\n      # If an extension is being registered, it also tells the list to\n      # watch it in the file where the extension has been registered.\n      # This prevents the duplication of the elements added by the\n      # extension in its +registered+ method with every reload.\n      def watch_element(path, type, representation = nil)\n        list = Watcher::List.for(self)\n        element = Watcher::Element.new(type, representation)\n        list.watch(path, element)\n        list.watch(register_path, element) if registering_extension?\n      end\n    end",
+        "comment": "attr_reader :register_path warn on -w (private attribute)",
+        "label": "Property",
+        "id": "106"
+    },
+    {
+        "raw_code": "def content_for(key, value = nil, options = {}, &block)\n      block ||= proc { |*| value }\n      clear_content_for(key) if options[:flush]\n      content_blocks[key.to_sym] << capture_later(&block)\n    end",
+        "comment": "Capture a block of content to be rendered later. For example:  <% content_for :head do %> <script type=\"text/javascript\" src=\"/foo.js\"></script> <% end %>  You can also pass an immediate value instead of a block:  <% content_for :title, \"foo\" %>  You can call +content_for+ multiple times with the same key (in the example +:head+), and when you render the blocks for that key all of them will be rendered, in the same order you captured them.  Your blocks can also receive values, which are passed to them by <tt>yield_content</tt>",
+        "label": "How-to-use",
+        "id": "107"
+    },
+    {
+        "raw_code": "def content_for?(key)\n      content_blocks[key.to_sym].any?\n    end",
+        "comment": "Check if a block of content with the given key was defined. For example:  <% content_for :head do %> <script type=\"text/javascript\" src=\"/foo.js\"></script> <% end %>  <% if content_for? :head %> <span>content \"head\" was defined.</span> <% end %>",
+        "label": "What",
+        "id": "108"
+    },
+    {
+        "raw_code": "def clear_content_for(key)\n      content_blocks.delete(key.to_sym) if content_for?(key)\n    end",
+        "comment": "Unset a named block of content. For example:  <% clear_content_for :head %>",
+        "label": "What",
+        "id": "109"
+    },
+    {
+        "raw_code": "def yield_content(key, *args, &block)\n      if block_given? && !content_for?(key)\n        haml? && Tilt[:haml] == Tilt::HamlTemplate && respond_to?(:capture_haml) ? capture_haml(*args, &block) : yield(*args)\n      else\n        content = content_blocks[key.to_sym].map { |b| capture(*args, &b) }\n        content.join.tap do |c|\n          if block_given? && (erb? || erubi?)\n            @_out_buf << c\n          end",
+        "comment": "Render the captured blocks for a given key. For example:  <head> <title>Example</title> <%= yield_content :head %> </head>  Would render everything you declared with <tt>content_for :head</tt> before closing the <tt><head></tt> tag.  You can also pass values to the content blocks by passing them as arguments after the key:  <%= yield_content :head, 1, 2 %>  Would pass <tt>1</tt> and <tt>2</tt> to all the blocks registered for <tt>:head</tt>.",
+        "label": "What",
+        "id": "110"
+    },
+    {
+        "raw_code": "def command\n      \"bundle exec ruby #{app_file} -p #{port} -e production\"\n    end",
+        "comment": "to be overwritten",
+        "label": "What",
+        "id": "111"
+    },
+    {
+        "raw_code": "def ping_path\n      '/ping'\n    end",
+        "comment": "to be overwritten",
+        "label": "What",
+        "id": "112"
+    },
+    {
+        "raw_code": "def port\n      4567\n    end",
+        "comment": "to be overwritten",
+        "label": "What",
+        "id": "113"
+    },
+    {
+        "raw_code": "def mock_app(base = Sinatra::Base, &block)\n      inner = nil\n      @app  = Sinatra.new(base) do\n        inner = self\n        class_eval(&block)\n      end",
+        "comment": "@!endgroup Instantiate and configure a mock Sinatra app.  Takes a `base` app class, or defaults to Sinatra::Base, and instantiates an app instance. Any given code in `block` is `class_eval`'d on this new instance before the instance is returned.  @param base [Sinatra::Base] App base class  @return [Sinatra] Configured mocked app",
+        "label": "What",
+        "id": "114"
+    },
+    {
+        "raw_code": "def app=(base)\n      @app = base\n    end",
+        "comment": "Replaces the configured app.  @param base [Sinatra::Base] a configured app",
+        "label": "What",
+        "id": "115"
+    },
+    {
+        "raw_code": "def app\n      @app ||= Class.new Sinatra::Base\n      Rack::Lint.new @app\n    end",
+        "comment": "Returns a Rack::Lint-wrapped Sinatra app.  If no app has been configured, a new subclass of Sinatra::Base will be used and stored.  (Rack::Lint validates your application and the requests and responses according to the Rack spec.)  @return [Sinatra::Base]",
+        "label": "What",
+        "id": "116"
+    },
+    {
+        "raw_code": "def options(uri, params = {}, env = {}, &block)\n        env = env_for(uri, env.merge(method: 'OPTIONS', params: params))\n        current_session.send(:process_request, uri, env, &block)\n      end",
+        "comment": "Processes an OPTIONS request in the context of the current session.  @param uri [String] @param params [Hash] @param env [Hash]",
+        "label": "How-it-is-done",
+        "id": "117"
+    },
+    {
+        "raw_code": "def patch(uri, params = {}, env = {}, &block)\n        env = env_for(uri, env.merge(method: 'PATCH', params: params))\n        current_session.send(:process_request, uri, env, &block)\n      end",
+        "comment": "Processes a PATCH request in the context of the current session.  @param uri [String] @param params [Hash] @param env [Hash]",
+        "label": "How-it-is-done",
+        "id": "118"
+    },
+    {
+        "raw_code": "def last_request?\n      last_request\n      true\n    rescue Rack::Test::Error\n      false\n    end",
+        "comment": "@return [Boolean]",
+        "label": "What",
+        "id": "119"
+    },
+    {
+        "raw_code": "def session\n      return {} unless last_request?\n      raise Rack::Test::Error, 'session not enabled for app' unless last_env['rack.session'] || app.session?\n\n      last_request.session\n    end",
+        "comment": "@raise [Rack::Test:Error] If sessions are not enabled for app @return [Hash] Session of last request, or the empty Hash",
+        "label": "What",
+        "id": "120"
+    },
+    {
+        "raw_code": "def last_env\n      last_request.env\n    end",
+        "comment": "@return The env of the last request",
+        "label": "What",
+        "id": "121"
+    },
+    {
+        "raw_code": "def unlock?\n        request_method == 'UNLOCK'\n      end",
+        "comment": "def lock? request_method == 'LOCK' end",
+        "label": "What",
+        "id": "122"
+    },
+    {
+        "raw_code": "def prefetch(*urls)\n      link(:prefetch, *urls)\n    end",
+        "comment": " Sets Link HTTP header and returns HTML tags for telling the browser to prefetch given resources (only supported by Opera and Firefox at the moment).",
+        "label": "Property",
+        "id": "123"
+    },
+    {
+        "raw_code": "def stylesheet(*urls)\n      urls << {} unless urls.last.respond_to? :to_hash\n      urls.last[:type] ||= mime_type(:css)\n      link(:stylesheet, *urls)\n    end",
+        "comment": " Sets Link HTTP header and returns HTML tags for using stylesheets.",
+        "label": "Property",
+        "id": "124"
+    },
+    {
+        "raw_code": "def link(*urls)\n      opts          = urls.last.respond_to?(:to_hash) ? urls.pop : {}\n      opts[:rel]    = urls.shift unless urls.first.respond_to? :to_str\n      options       = opts.map { |k, v| \" #{k}=#{v.to_s.inspect}\" }\n      html_pattern  = \"<link href=\\\"%s\\\"#{options.join} />\"\n      http_pattern  = ['<%s>', *options].join ';'\n      link          = (response['Link'] ||= '')\n\n      link = response['Link'] = +link\n\n      urls.map do |url|\n        link << \",\" unless link.empty?\n        link << (http_pattern % url)\n        html_pattern % url\n      end.join\n    end",
+        "comment": " Sets Link HTTP header and returns corresponding HTML tags.  Example:  # Sets header: #   Link: </foo>; rel=\"next\" # Returns String: #   '<link href=\"/foo\" rel=\"next\" />' link '/foo', :rel => :next  # Multiple URLs link :stylesheet, '/a.css', '/b.css'",
+        "label": "Property",
+        "id": "125"
+    },
+    {
+        "raw_code": "def link_headers\n      yield if block_given?\n      return '' unless response.include? 'Link'\n\n      response['Link'].split(\",\").map do |line|\n        url, *opts = line.split(';').map(&:strip)\n        \"<link href=\\\"#{url[1..-2]}\\\" #{opts.join ' '} />\"\n      end.join\n    end",
+        "comment": " Takes the current value of th Link header(s) and generates HTML tags from it.  Example:  get '/' do # You can of course use fancy helpers like #link, #stylesheet # or #prefetch response[\"Link\"] = '</foo>; rel=\"next\"' haml :some_page end  __END__  @@ layout %head= link_headers %body= yield",
+        "label": "What",
+        "id": "126"
+    },
+    {
+        "raw_code": "def erb?\n      @current_engine == :erb\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:erb`.",
+        "label": "Property",
+        "id": "127"
+    },
+    {
+        "raw_code": "def erubi?\n      @current_engine == :erubi or\n        (erb? && Tilt[:erb] == Tilt::ErubiTemplate)\n    end",
+        "comment": "Returns true if the current engine is `:erubi`, or `Tilt[:erb]` is set to Tilt::ErubiTemplate.  @return [Boolean] Returns true if current engine is `:erubi`.",
+        "label": "Property",
+        "id": "128"
+    },
+    {
+        "raw_code": "def haml?\n      @current_engine == :haml\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:haml`.",
+        "label": "Property",
+        "id": "129"
+    },
+    {
+        "raw_code": "def sass?\n      @current_engine == :sass\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:sass`.",
+        "label": "Property",
+        "id": "130"
+    },
+    {
+        "raw_code": "def scss?\n      @current_engine == :scss\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:scss`.",
+        "label": "Property",
+        "id": "131"
+    },
+    {
+        "raw_code": "def builder?\n      @current_engine == :builder\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:builder`.",
+        "label": "Property",
+        "id": "132"
+    },
+    {
+        "raw_code": "def liquid?\n      @current_engine == :liquid\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:liquid`.",
+        "label": "Property",
+        "id": "133"
+    },
+    {
+        "raw_code": "def markdown?\n      @current_engine == :markdown\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:markdown`.",
+        "label": "Property",
+        "id": "134"
+    },
+    {
+        "raw_code": "def rdoc?\n      @current_engine == :rdoc\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:rdoc`.",
+        "label": "Property",
+        "id": "135"
+    },
+    {
+        "raw_code": "def markaby?\n      @current_engine == :markaby\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:markaby`.",
+        "label": "Property",
+        "id": "136"
+    },
+    {
+        "raw_code": "def nokogiri?\n      @current_engine == :nokogiri\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:nokogiri`.",
+        "label": "Property",
+        "id": "137"
+    },
+    {
+        "raw_code": "def slim?\n      @current_engine == :slim\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:slim`.",
+        "label": "Property",
+        "id": "138"
+    },
+    {
+        "raw_code": "def ruby?\n      @current_engine == :ruby\n    end",
+        "comment": "@return [Boolean] Returns true if current engine is `:ruby`.",
+        "label": "Property",
+        "id": "139"
+    },
+    {
+        "raw_code": "def with_engine(engine)\n      engine_was = @current_engine\n      @current_engine = engine.to_sym\n      yield\n    ensure\n      @current_engine = engine_was\n    end",
+        "comment": "@param engine [Symbol, String] Name of Engine to shift to.",
+        "label": "What",
+        "id": "140"
+    },
+    {
+        "raw_code": "def self.registered(base)\n      base.set :environments, %w[test production development]\n    end",
+        "comment": "When the extension is registered sets the +environments+ setting to the traditional environments: development, test and production.",
+        "label": "What",
+        "id": "141"
+    },
+    {
+        "raw_code": "def config_file(*paths)\n      Dir.chdir(root || '.') do\n        paths.each do |pattern|\n          Dir.glob(pattern) do |file|\n            raise UnsupportedConfigType unless ['.yml', '.yaml', '.erb'].include?(File.extname(file))\n\n            logger.info \"loading config file '#{file}'\" if logging? && respond_to?(:logger)\n            document = ERB.new(File.read(file)).result\n            yaml = YAML.respond_to?(:unsafe_load) ? YAML.unsafe_load(document) : YAML.load(document)\n            config = config_for_env(yaml)\n            config.each_pair { |key, value| set(key, value) }\n          end",
+        "comment": "Loads the configuration from the YAML files whose +paths+ are passed as arguments, filtering the settings for the current environment.  Note that these +paths+ can actually be globs.",
+        "label": "What",
+        "id": "142"
+    },
+    {
+        "raw_code": "def config_for_env(hash)\n      return from_environment_key(hash) if environment_keys?(hash)\n\n      hash.each_with_object(IndifferentHash[]) do |(k, v), acc|\n        if environment_keys?(v)\n          acc.merge!(k => v[environment.to_s]) if v.key?(environment.to_s)\n        else\n          acc.merge!(k => v)\n        end",
+        "comment": "Given a +hash+ containing application configuration it returns settings applicable to the current environment. Note: It gives precedence to environment settings defined at the root-level.",
+        "label": "Property",
+        "id": "143"
+    },
+    {
+        "raw_code": "def from_environment_key(hash)\n      hash[environment.to_s] || hash[environment.to_sym] || {}\n    end",
+        "comment": "Given a +hash+ returns the settings corresponding to the current environment.",
+        "label": "Property",
+        "id": "144"
+    },
+    {
+        "raw_code": "def environment_keys?(hash)\n      hash.is_a?(Hash) && hash.any? { |k, _| environments.include?(k.to_s) }\n    end",
+        "comment": "Returns true if supplied with a hash that has any recognized +environments+ in its root keys.",
+        "label": "Property",
+        "id": "145"
+    },
+    {
+        "raw_code": "def tmp_dir\n    File.expand_path('../tmp', __dir__)\n  end",
+        "comment": "Returns the temporary directory.",
+        "label": "Property",
+        "id": "146"
+    },
+    {
+        "raw_code": "def app_file_path\n    File.join(tmp_dir, \"example_app_#{$example_app_counter}.rb\")\n  end",
+        "comment": "Returns the path of the Sinatra application file created by +setup_example_app+.",
+        "label": "Property",
+        "id": "147"
+    },
+    {
+        "raw_code": "def app_name\n    \"ExampleApp#{$example_app_counter}\"\n  end",
+        "comment": "Returns the name of the Sinatra application created by +setup_example_app+: 'ExampleApp1' for the first application, 'ExampleApp2' fo the second one, and so on...",
+        "label": "Property",
+        "id": "148"
+    },
+    {
+        "raw_code": "def app_const\n    Module.const_get(app_name)\n  end",
+        "comment": "Returns the (constant of the) Sinatra application created by +setup_example_app+.",
+        "label": "Property",
+        "id": "149"
+    },
+    {
+        "raw_code": "def write_app_file(options={})\n    options[:routes] ||= ['get(\"/foo\") { erb :foo }']\n    options[:inline_templates] ||= nil\n    options[:extensions] ||= []\n    options[:middlewares] ||= []\n    options[:filters] ||= []\n    options[:errors] ||= {}\n    options[:name] ||= app_name\n    options[:enable_reloader] = true unless options[:enable_reloader] === false\n    options[:parent] ||= 'Sinatra::Base'\n\n    update_file(app_file_path) do |f|\n      template_path = File.expand_path('reloader/app.rb.erb', __dir__)\n      template = Tilt.new(template_path, nil, :trim => '<>')\n      f.write template.render(Object.new, options)\n    end",
+        "comment": "Writes a file with a Sinatra application using the template located at <tt>specs/reloader/app.rb.erb</tt>.  It expects an +options+ hash, with an array of strings containing the application's routes (+:routes+ key), a hash with the inline template's names as keys and the bodys as values (+:inline_templates+ key) and an optional application name (+:name+) otherwise +app_name+ is used.  It ensures to change the written file's mtime when it already exists.",
+        "label": "Property",
+        "id": "150"
+    },
+    {
+        "raw_code": "def update_file(path, &block)\n    original_mtime = File.exist?(path) ? File.mtime(path) : Time.at(0)\n    new_time = original_mtime + 1\n    File.open(path, 'w', &block)\n    File.utime(new_time, new_time, path)\n  end",
+        "comment": "It calls <tt>File.open(path, 'w', &block)</tt> all the times needed to change the file's mtime.",
+        "label": "How-to-use",
+        "id": "151"
+    },
+    {
+        "raw_code": "def setup_example_app(options={})\n    $example_app_counter ||= 0\n    $example_app_counter += 1\n\n    FileUtils.mkdir_p(tmp_dir)\n    write_app_file(options)\n    $LOADED_FEATURES.delete app_file_path\n    require app_file_path\n    self.app = app_const\n    app_const.enable :reloader\n  end",
+        "comment": "Writes a Sinatra application to a file, requires the file, sets the new application as the one being tested and enables the reloader.",
+        "label": "What",
+        "id": "152"
+    },
+    {
+        "raw_code": "def decode(s)\n    ts = lex(s)\n    v, ts = textparse(ts)\n    if ts.length > 0\n      raise Error, 'trailing garbage'\n    end",
+        "comment": "Decodes a json document in string s and returns the corresponding ruby value. String s must be valid UTF-8. If you have a string in some other encoding, convert it first.  String values in the resulting structure will be UTF-8.",
+        "label": "Property",
+        "id": "153"
+    },
+    {
+        "raw_code": "def textparse(ts)\n    if ts.length < 0\n      raise Error, 'empty'\n    end",
+        "comment": "Parses a \"json text\" in the sense of RFC 4627. Returns the parsed value and any trailing tokens. Note: this is almost the same as valparse, except that it does not accept atomic values.",
+        "label": "How-it-is-done",
+        "id": "154"
+    },
+    {
+        "raw_code": "def valparse(ts)\n    if ts.length < 0\n      raise Error, 'empty'\n    end",
+        "comment": "Parses a \"value\" in the sense of RFC 4627. Returns the parsed value and any trailing tokens.",
+        "label": "Property",
+        "id": "155"
+    },
+    {
+        "raw_code": "def objparse(ts)\n    ts = eat('{', ts)\n    obj = {}\n\n    if ts[0][0] == '}'\n      return obj, ts[1..-1]\n    end",
+        "comment": "Parses an \"object\" in the sense of RFC 4627. Returns the parsed value and any trailing tokens.",
+        "label": "Property",
+        "id": "156"
+    },
+    {
+        "raw_code": "def pairparse(ts)\n    (typ, _, k), ts = ts[0], ts[1..-1]\n    if typ != :str\n      raise Error, \"unexpected #{k.inspect}\"\n    end",
+        "comment": "Parses a \"member\" in the sense of RFC 4627. Returns the parsed values and any trailing tokens.",
+        "label": "Property",
+        "id": "157"
+    },
+    {
+        "raw_code": "def arrparse(ts)\n    ts = eat('[', ts)\n    arr = []\n\n    if ts[0][0] == ']'\n      return arr, ts[1..-1]\n    end",
+        "comment": "Parses an \"array\" in the sense of RFC 4627. Returns the parsed value and any trailing tokens.",
+        "label": "Property",
+        "id": "158"
+    },
+    {
+        "raw_code": "def lex(s)\n    ts = []\n    while s.length > 0\n      typ, lexeme, val = tok(s)\n      if typ == nil\n        raise Error, \"invalid character at #{s[0,10].inspect}\"\n      end",
+        "comment": "Sans s and returns a list of json tokens, excluding white space (as defined in RFC 4627).",
+        "label": "Property",
+        "id": "159"
+    },
+    {
+        "raw_code": "def tok(s)\n    case s[0]\n    when ?{  then ['{', s[0,1], s[0,1]]\n    when ?}  then ['}', s[0,1], s[0,1]]\n    when ?:  then [':', s[0,1], s[0,1]]\n    when ?,  then [',', s[0,1], s[0,1]]\n    when ?[  then ['[', s[0,1], s[0,1]]\n    when ?]  then [']', s[0,1], s[0,1]]\n    when ?n  then nulltok(s)\n    when ?t  then truetok(s)\n    when ?f  then falsetok(s)\n    when ?\"  then strtok(s)\n    when Spc then [:space, s[0,1], s[0,1]]\n    when ?\\t then [:space, s[0,1], s[0,1]]\n    when ?\\n then [:space, s[0,1], s[0,1]]\n    when ?\\r then [:space, s[0,1], s[0,1]]\n    else          numtok(s)\n    end",
+        "comment": "Scans the first token in s and returns a 3-element list, or nil if no such token exists.  The first list element is one of '{', '}', ':', ',', '[', ']', :val, :str, and :space.  The second element is the lexeme.  The third element is the value of the token for :val and :str, otherwise it is the lexeme.",
+        "label": "Property",
+        "id": "160"
+    },
+    {
+        "raw_code": "def unquote(q)\n    q = q[1...-1]\n    a = q.dup # allocate a big enough string\n    r, w = 0, 0\n    while r < q.length\n      c = q[r]\n      case true\n      when c == ?\\\\\n        r += 1\n        if r >= q.length\n          raise Error, \"string literal ends with a \\\"\\\\\\\": \\\"#{q}\\\"\"\n        end",
+        "comment": "Converts a quoted json string literal q into a UTF-8-encoded string. The rules are different than for Ruby, so we cannot use eval. Unquote will raise an error if q contains control characters.",
+        "label": "How-to-use",
+        "id": "161"
+    },
+    {
+        "raw_code": "def ucharenc(a, i, u)\n    case true\n    when u <= Uchar1max\n      a[i] = (u & 0xff).chr\n      1\n    when u <= Uchar2max\n      a[i+0] = (Utag2 | ((u>>6)&0xff)).chr\n      a[i+1] = (Utagx | (u&Umaskx)).chr\n      2\n    when u <= Uchar3max\n      a[i+0] = (Utag3 | ((u>>12)&0xff)).chr\n      a[i+1] = (Utagx | ((u>>6)&Umaskx)).chr\n      a[i+2] = (Utagx | (u&Umaskx)).chr\n      3\n    else\n      a[i+0] = (Utag4 | ((u>>18)&0xff)).chr\n      a[i+1] = (Utagx | ((u>>12)&Umaskx)).chr\n      a[i+2] = (Utagx | ((u>>6)&Umaskx)).chr\n      a[i+3] = (Utagx | (u&Umaskx)).chr\n      4\n    end",
+        "comment": "Encodes unicode character u as UTF-8 bytes in string a at position i. Returns the number of bytes written.",
+        "label": "Property",
+        "id": "162"
+    },
+    {
+        "raw_code": "def encode(x)\n    case x\n    when Hash    then objenc(x)\n    when Array   then arrenc(x)\n    else\n      raise Error, 'root value must be an Array or a Hash'\n    end",
+        "comment": "Encodes x into a json text. It may contain only Array, Hash, String, Numeric, true, false, nil. (Note, this list excludes Symbol.) X itself must be an Array or a Hash. No other value can be encoded, and an error will be raised if x contains any other value, such as Nan, Infinity, Symbol, and Proc, or if a Hash key is not a String. Strings contained in x must be valid UTF-8.",
+        "label": "Others",
+        "id": "163"
+    },
+    {
+        "raw_code": "def uchardec(s, i)\n    n = s.length - i\n    return [Ucharerr, 1] if n < 1\n\n    c0 = s[i].ord\n\n    # 1-byte, 7-bit sequence?\n    if c0 < Utagx\n      return [c0, 1]\n    end",
+        "comment": "Decodes unicode character u from UTF-8 bytes in string s at position i. Returns u and the number of bytes read.",
+        "label": "Property",
+        "id": "164"
+    },
+    {
+        "raw_code": "def assertions\n    @assertions ||= 0\n  end",
+        "comment": "Allow assertions in request context",
+        "label": "Others",
+        "id": "165"
+    },
+    {
+        "raw_code": "def mock_app(base=Sinatra::Base, &block)\n    @app = Sinatra.new(base, &block)\n  end",
+        "comment": "Sets up a Sinatra::Base subclass defined with the block given. Used in setup or individual spec methods to establish the application.",
+        "label": "What",
+        "id": "166"
+    },
+    {
+        "raw_code": "def method_missing(name, *args, &block)\n    if response && response.respond_to?(name)\n      response.send(name, *args, &block)\n    else\n      super\n    end",
+        "comment": "Delegate other missing methods to response.",
+        "label": "Others",
+        "id": "167"
+    },
+    {
+        "raw_code": "def silence_warnings\n    $VERBOSE, v = nil, $VERBOSE\n    yield\n  ensure\n    $VERBOSE = v\n  end",
+        "comment": "Do not output warnings for the duration of the block.",
+        "label": "What",
+        "id": "168"
+    },
+    {
+        "raw_code": "def route_def(pattern)\n  mock_app { get(pattern) { } }\nend",
+        "comment": "Helper method for easy route pattern matching testing",
+        "label": "How-to-use",
+        "id": "169"
+    },
+    {
+        "raw_code": "def self.assertions\n      @assertions ||= 0\n    end",
+        "comment": "Allow assertions in request context",
+        "label": "Others",
+        "id": "170"
+    }
+]

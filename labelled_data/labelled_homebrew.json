@@ -1,0 +1,326 @@
+[
+    {
+        "raw_code": "def install\n    args = %W[\n      --prefix=#{prefix}\n      --no-system-libs\n      --parallel=#{ENV.make_jobs}\n      --datadir=/share/cmake\n      --docdir=/share/doc/cmake\n      --mandir=/share/man\n    ]\n    if OS.mac?\n      args += %w[\n        --system-zlib\n        --system-bzip2\n        --system-curl\n      ]\n    end",
+        "comment": "The completions were removed because of problems with system bash The `with-qt` GUI option was removed due to circular dependencies if CMake is built with Qt support and Qt is built with MySQL support as MySQL uses CMake. For the GUI application please instead use `brew install --cask cmake`.",
+        "label": "Why",
+        "id": "1"
+    },
+    {
+        "raw_code": "def breaks_macos_users\n    %w[dir dircolors vdir]\n  end",
+        "comment": "https://github.com/Homebrew/homebrew-core/pull/36494",
+        "label": "What",
+        "id": "2"
+    },
+    {
+        "raw_code": "def install\n    llvm = Formula[\"llvm@20\"]\n\n    # TODO: Restore ENV.llvm_clang when using unversioned `llvm`\n    if OS.mac? && DevelopmentTools.clang_build_version <= 1500\n      ENV[\"CC\"] = llvm.opt_bin/\"clang\"\n      ENV[\"CXX\"] = llvm.opt_bin/\"clang++\"\n      inreplace \"CMakeLists.txt\", \"add_definitions(-Werror)\", \"\"\n    end",
+        "comment": "TODO: Restore compiler selection when using unversioned `llvm` fails_with :clang do build 1500 cause \"Requires Clang > 15.0\" end",
+        "label": "What",
+        "id": "3"
+    },
+    {
+        "raw_code": "def install_new_dmd_conf\n    conf = etc/\"dmd.conf\"\n\n    # If the new file differs from conf, etc.install drops it here:\n    new_conf = etc/\"dmd.conf.default\"\n    # Else, we're already using the latest version:\n    return unless new_conf.exist?\n\n    backup = etc/\"dmd.conf.old\"\n    opoo \"An old dmd.conf was found and will be moved to #{backup}.\"\n    mv conf, backup\n    mv new_conf, conf\n  end",
+        "comment": "Previous versions of this formula may have left in place an incorrect dmd.conf.  If it differs from the newly generated one, move it out of place and warn the user.",
+        "label": "What",
+        "id": "4"
+    },
+    {
+        "raw_code": "def clang19_patch\n    <<~PATCH\n      diff --git a/src/coreclr/vm/comreflectioncache.hpp b/src/coreclr/vm/comreflectioncache.hpp\n      index 08d173e61648c6ebb98a4d7323b30d40ec351d94..12db55251d80d24e3765a8fbe6e3b2d24a12f767 100644\n      --- a/src/coreclr/vm/comreflectioncache.hpp\n      +++ b/src/coreclr/vm/comreflectioncache.hpp\n      @@ -26,6 +26,7 @@ template <class Element, class CacheType, int CacheSize> class ReflectionCache\n\n           void Init();\n\n      +#ifndef DACCESS_COMPILE\n           BOOL GetFromCache(Element *pElement, CacheType& rv)\n           {\n               CONTRACTL\n      @@ -102,6 +103,7 @@ template <class Element, class CacheType, int CacheSize> class ReflectionCache\n               AdjustStamp(TRUE);\n               this->LeaveWrite();\n           }\n      +#endif // !DACCESS_COMPILE\n\n       private:\n           // Lock must have been taken before calling this.\n      @@ -141,6 +143,7 @@ template <class Element, class CacheType, int CacheSize> class ReflectionCache\n               return CacheSize;\n           }\n\n      +#ifndef DACCESS_COMPILE\n           void AdjustStamp(BOOL hasWriterLock)\n           {\n               CONTRACTL\n      @@ -170,6 +173,7 @@ template <class Element, class CacheType, int CacheSize> class ReflectionCache\n               if (!hasWriterLock)\n                   this->LeaveWrite();\n           }\n      +#endif // !DACCESS_COMPILE\n\n           void UpdateHashTable(SIZE_T hash, int slot)\n           {\n    PATCH\n  end",
+        "comment": "Backport fix to build with Clang 19 Ref: https://github.com/dotnet/runtime/commit/043ae8c50dbe1c7377cf5ad436c5ac1c226aef79",
+        "label": "What",
+        "id": "5"
+    },
+    {
+        "raw_code": "def xcode16_patch\n    <<~'PATCH'\n      diff --git a/src/coreclr/pal/inc/unixasmmacrosamd64.inc b/src/coreclr/pal/inc/unixasmmacrosamd64.inc\n      index 976cc825f2eb4..4997e18b39858 100644\n      --- a/src/coreclr/pal/inc/unixasmmacrosamd64.inc\n      +++ b/src/coreclr/pal/inc/unixasmmacrosamd64.inc\n      @@ -17,7 +17,12 @@\n       .endm\n\n       .macro PATCH_LABEL Name\n      +#if defined(__APPLE__)\n      +        .alt_entry C_FUNC(\\Name)\n      +        .private_extern C_FUNC(\\Name)\n      +#else\n               .global C_FUNC(\\Name)\n      +#endif\n       C_FUNC(\\Name):\n       .endm\n\n      diff --git a/src/coreclr/pal/inc/unixasmmacrosarm64.inc b/src/coreclr/pal/inc/unixasmmacrosarm64.inc\n      index 976cc825f2eb4..4997e18b39858 100644\n      --- a/src/coreclr/pal/inc/unixasmmacrosarm64.inc\n      +++ b/src/coreclr/pal/inc/unixasmmacrosarm64.inc\n      @@ -17,7 +17,12 @@\n       .endm\n\n       .macro PATCH_LABEL Name\n      +#if defined(__APPLE__)\n      +        .alt_entry C_FUNC(\\Name)\n      +        .private_extern C_FUNC(\\Name)\n      +#else\n               .global C_FUNC(\\Name)\n      +#endif\n       C_FUNC(\\Name):\n       .endm\n\n      diff --git a/src/coreclr/vm/arm64/asmhelpers.S b/src/coreclr/vm/arm64/asmhelpers.S\n      index ebfefd693f074..48c91e65a098d 100644\n      --- a/src/coreclr/vm/arm64/asmhelpers.S\n      +++ b/src/coreclr/vm/arm64/asmhelpers.S\n      @@ -176,8 +176,7 @@ NESTED_END ThePreStub, _TEXT\n\n       LEAF_ENTRY ThePreStubPatch, _TEXT\n           nop\n      -.globl C_FUNC(ThePreStubPatchLabel)\n      -C_FUNC(ThePreStubPatchLabel):\n      +PATCH_LABEL ThePreStubPatchLabel\n           ret lr\n       LEAF_END ThePreStubPatch, _TEXT\n\n      @@ -607,8 +606,12 @@ NESTED_END ResolveWorkerAsmStub, _TEXT\n       #ifdef FEATURE_READYTORUN\n\n       NESTED_ENTRY DelayLoad_MethodCall_FakeProlog, _TEXT, NoHandler\n      -C_FUNC(DelayLoad_MethodCall):\n      +#if defined(__APPLE__)\n      +    .alt_entry C_FUNC(DelayLoad_MethodCall)\n      +#endif\n           .global C_FUNC(DelayLoad_MethodCall)\n      +C_FUNC(DelayLoad_MethodCall):\n      +\n           PROLOG_WITH_TRANSITION_BLOCK\n\n           add x0, sp, #__PWTB_TransitionBlock // pTransitionBlock\n      @@ -627,8 +630,11 @@ NESTED_END DelayLoad_MethodCall_FakeProlog, _TEXT\n\n       .macro DynamicHelper frameFlags, suffix\n       NESTED_ENTRY DelayLoad_Helper\\suffix\\()_FakeProlog, _TEXT, NoHandler\n      -C_FUNC(DelayLoad_Helper\\suffix):\n      +#if defined(__APPLE__)\n      +    .alt_entry C_FUNC(DelayLoad_Helper\\suffix)\n      +#endif\n           .global C_FUNC(DelayLoad_Helper\\suffix)\n      +C_FUNC(DelayLoad_Helper\\suffix):\n\n           PROLOG_WITH_TRANSITION_BLOCK\n\n    PATCH\n  end",
+        "comment": "Backport fix to build with Xcode 16 (copying unixasmmacrosarm64.inc to unixasmmacrosamd64.inc for Intel macOS) Ref: https://github.com/dotnet/runtime/commit/562efd6824762dd0c1826cc99e006ad34a7e9e85",
+        "label": "What",
+        "id": "6"
+    },
+    {
+        "raw_code": "def startup_script\n    <<~EOS\n      #!/bin/sh\n      PID=#{var}/spool/exim/exim-daemon.pid\n      case \"$1\" in\n      start)\n        echo \"starting exim mail transfer agent\"\n        #{bin}/exim -bd -q30m\n        ;;\n      restart)\n        echo \"restarting exim mail transfer agent\"\n        /bin/kill -15 `/bin/cat $PID` && sleep 1 && #{bin}/exim -bd -q30m\n        ;;\n      stop)\n        echo \"stopping exim mail transfer agent\"\n        /bin/kill -15 `/bin/cat $PID`\n        ;;\n      *)\n        echo \"Usage: #{bin}/exim_ctl {start|stop|restart}\"\n        exit 1\n        ;;\n      esac\n    EOS\n  end",
+        "comment": "Inspired by MacPorts startup script. Fixes restart issue due to missing setuid.",
+        "label": "What",
+        "id": "7"
+    },
+    {
+        "raw_code": "def remove_brew_expat\n    env_vars = %w[CMAKE_PREFIX_PATH HOMEBREW_INCLUDE_PATHS HOMEBREW_LIBRARY_PATHS PATH PKG_CONFIG_PATH]\n    ENV.remove env_vars, /(^|:)#{Regexp.escape(Formula[\"expat\"].opt_prefix)}[^:]*/\n    ENV.remove \"HOMEBREW_DEPENDENCIES\", \"expat\"\n  end",
+        "comment": "Work around superenv to avoid mixing `expat` usage in libraries across dependency tree. Brew `expat` usage in Python has low impact as it isn't loaded unless pyexpat is used. TODO: Consider adding a DSL for this or change how we handle Python's `expat` dependency",
+        "label": "How-to-use",
+        "id": "8"
+    },
+    {
+        "raw_code": "def gdk_so_ver\n    \"2.0\"\n  end",
+        "comment": "gdk-pixbuf has an internal version number separate from the overall version number that specifies the location of its module and cache files, this will need to be updated if that internal version number is ever changed (as evidenced by the location no longer existing)",
+        "label": "Property",
+        "id": "9"
+    },
+    {
+        "raw_code": "def module_dir\n    \"#{HOMEBREW_PREFIX}/lib/gdk-pixbuf-#{gdk_so_ver}/#{gdk_module_ver}\"\n  end",
+        "comment": "The directory that loaders.cache gets linked into, also has the \"loaders\" directory that is scanned by gdk-pixbuf-query-loaders in the first place",
+        "label": "What",
+        "id": "10"
+    },
+    {
+        "raw_code": "def conf_example(port = 8080)\n    <<~EOS\n      listen: #{port}\n      hosts:\n        \"127.0.0.1.xip.io:#{port}\":\n          paths:\n            /:\n              file.dir: #{var}/h2o/\n    EOS\n  end",
+        "comment": "This is simplified from examples/h2o/h2o.conf upstream.",
+        "label": "How-to-use",
+        "id": "11"
+    },
+    {
+        "raw_code": "def remove_brew_expat\n    env_vars = %w[CMAKE_PREFIX_PATH HOMEBREW_INCLUDE_PATHS HOMEBREW_LIBRARY_PATHS PATH PKG_CONFIG_PATH]\n    ENV.remove env_vars, /(^|:)#{Regexp.escape(Formula[\"expat\"].opt_prefix)}[^:]*/\n    ENV.remove \"HOMEBREW_DEPENDENCIES\", \"expat\"\n  end",
+        "comment": "Work around superenv to avoid mixing `expat` usage in libraries across dependency tree. Brew `expat` usage in Python has low impact as it isn't loaded unless pyexpat is used. TODO: Consider adding a DSL for this or change how we handle Python's `expat` dependency",
+        "label": "How-to-use",
+        "id": "12"
+    },
+    {
+        "raw_code": "def write_config_files(macos_version, kernel_version, arch)\n    clang_config_file_dir.mkpath\n\n    arches = Set.new([:arm64, :x86_64, :aarch64])\n    arches << arch\n\n    sysroot = if macos_version.blank? || (MacOS.version > macos_version && MacOS::CLT.separate_header_package?)\n      \"#{MacOS::CLT::PKG_PATH}/SDKs/MacOSX.sdk\"\n    elsif macos_version >= \"10.14\"\n      \"#{MacOS::CLT::PKG_PATH}/SDKs/MacOSX#{macos_version}.sdk\"\n    else\n      \"/\"\n    end",
+        "comment": "We use the extra layer of indirection in `arch` because the FormulaAudit/OnSystemConditionals doesn't want to let us use `Hardware::CPU.arch` outside of `install` or `post_install` blocks.",
+        "label": "Why",
+        "id": "13"
+    },
+    {
+        "raw_code": "def write_config_files(macos_version, kernel_version, arch)\n    clang_config_file_dir.mkpath\n\n    arches = Set.new([:arm64, :x86_64, :aarch64])\n    arches << arch\n\n    sysroot = if macos_version.blank? || (MacOS.version > macos_version && MacOS::CLT.separate_header_package?)\n      \"#{MacOS::CLT::PKG_PATH}/SDKs/MacOSX.sdk\"\n    elsif macos_version >= \"10.14\"\n      \"#{MacOS::CLT::PKG_PATH}/SDKs/MacOSX#{macos_version}.sdk\"\n    else\n      \"/\"\n    end",
+        "comment": "We use the extra layer of indirection in `arch` because the FormulaAudit/OnSystemConditionals doesn't want to let us use `Hardware::CPU.arch` outside of `install` or `post_install` blocks.",
+        "label": "Why",
+        "id": "14"
+    },
+    {
+        "raw_code": "def write_config_files(macos_version, kernel_version, arch)\n    clang_config_file_dir.mkpath\n\n    arches = Set.new([:arm64, :x86_64, :aarch64])\n    arches << arch\n\n    sysroot = if macos_version.blank? || (MacOS.version > macos_version && MacOS::CLT.separate_header_package?)\n      \"#{MacOS::CLT::PKG_PATH}/SDKs/MacOSX.sdk\"\n    elsif macos_version >= \"10.14\"\n      \"#{MacOS::CLT::PKG_PATH}/SDKs/MacOSX#{macos_version}.sdk\"\n    else\n      \"/\"\n    end",
+        "comment": "We use the extra layer of indirection in `arch` because the FormulaAudit/OnSystemConditionals doesn't want to let us use `Hardware::CPU.arch` outside of `install` or `post_install` blocks.",
+        "label": "Why",
+        "id": "15"
+    },
+    {
+        "raw_code": "def gemfile_remove_test!\n    gemfile_lines = []\n    test_group = false\n    File.read(\"Gemfile\").each_line do |line|\n      line.chomp!\n\n      # If this is the closing part of the test group,\n      # swallow this line and then allow writing the test of the file.\n      if test_group && line == \"end\"\n        test_group = false\n        next\n      # If we're still inside the test group, skip writing.\n      elsif test_group\n        next\n      end",
+        "comment": "This is annoying - if the gemfile lists test group gems at all, even if we've explicitly requested to install without them, bundle install --cache will fail because it can't find those gems. Handle this by modifying the gemfile to remove these gems.",
+        "label": "Why",
+        "id": "16"
+    },
+    {
+        "raw_code": "def remove_brew_expat\n    env_vars = %w[CMAKE_PREFIX_PATH HOMEBREW_INCLUDE_PATHS HOMEBREW_LIBRARY_PATHS PATH PKG_CONFIG_PATH]\n    ENV.remove env_vars, /(^|:)#{Regexp.escape(Formula[\"expat\"].opt_prefix)}[^:]*/\n    ENV.remove \"HOMEBREW_DEPENDENCIES\", \"expat\"\n  end",
+        "comment": "Work around superenv to avoid mixing `expat` usage in libraries across dependency tree. Brew `expat` usage in Python has low impact as it isn't loaded unless pyexpat is used. TODO: Consider adding a DSL for this or change how we handle Python's `expat` dependency",
+        "label": "How-to-use",
+        "id": "17"
+    },
+    {
+        "raw_code": "def config_file\n    <<~EOS\n      #!/bin/sh\n      for opt; do :; done\n      case \"$opt\" in\n        --version) opt=\"--modversion\";;\n        --cflags|--libs) ;;\n        *) exit 1;;\n      esac\n      pkg-config \"$opt\" nss\n    EOS\n  end",
+        "comment": "A very minimal nss-config for configuring firefox etc. with this nss, see https://bugzil.la/530672 for the progress of upstream inclusion.",
+        "label": "What",
+        "id": "18"
+    },
+    {
+        "raw_code": "def caveats\n    <<~EOS\n      Ogmtools has not been updated since 2004 and is no longer being developed,\n      maintained or supported. There are several issues, especially on 64-bit\n      architectures, which the author will not fix or accept patches for.\n      Keep this in mind when deciding whether to use this software.\n    EOS\n  end",
+        "comment": "Borrow warning from MacPorts",
+        "label": "What",
+        "id": "19"
+    },
+    {
+        "raw_code": "def install\n    system \"./autogen.sh\"\n    system \"./configure\", \"--disable-silent-rules\",\n                          \"--enable-legacy-pppd\", # only for pppd < 2.5.0\n                          \"--sysconfdir=#{etc}/openfortivpn\",\n                          *std_configure_args\n    system \"make\", \"install\"\n  end",
+        "comment": "awaiting formula creation uses_from_macos \"pppd\"",
+        "label": "Why",
+        "id": "20"
+    },
+    {
+        "raw_code": "def configure_args\n    args = %W[\n      --prefix=#{prefix}\n      --openssldir=#{openssldir}\n      no-ssl3\n      no-ssl3-method\n      no-zlib\n    ]\n    on_linux do\n      args += (ENV.cflags || \"\").split\n      args += (ENV.cppflags || \"\").split\n      args += (ENV.ldflags || \"\").split\n      args << \"enable-md2\"\n    end",
+        "comment": "SSLv2 died with 1.1.0, so no-ssl2 no longer required. SSLv3 & zlib are off by default with 1.1.0 but this may not be obvious to everyone, so explicitly state it for now to help debug inevitable breakage.",
+        "label": "What",
+        "id": "21"
+    },
+    {
+        "raw_code": "def configure_args\n    args = %W[\n      --prefix=#{prefix}\n      --openssldir=#{openssldir}\n      --libdir=#{lib}\n      no-ssl3\n      no-ssl3-method\n      no-zlib\n    ]\n    on_linux do\n      args += (ENV.cflags || \"\").split\n      args += (ENV.cppflags || \"\").split\n      args += (ENV.ldflags || \"\").split\n    end",
+        "comment": "SSLv2 died with 1.1.0, so no-ssl2 no longer required. SSLv3 & zlib are off by default with 1.1.0 but this may not be obvious to everyone, so explicitly state it for now to help debug inevitable breakage.",
+        "label": "What",
+        "id": "22"
+    },
+    {
+        "raw_code": "def configure_args\n    args = %W[\n      --prefix=#{prefix}\n      --openssldir=#{openssldir}\n      --libdir=lib\n      no-ssl3\n      no-ssl3-method\n      no-zlib\n    ]\n    on_linux do\n      args += (ENV.cflags || \"\").split\n      args += (ENV.cppflags || \"\").split\n      args += (ENV.ldflags || \"\").split\n    end",
+        "comment": "SSLv2 died with 1.1.0, so no-ssl2 no longer required. SSLv3 & zlib are off by default with 1.1.0 but this may not be obvious to everyone, so explicitly state it for now to help debug inevitable breakage.",
+        "label": "What",
+        "id": "23"
+    },
+    {
+        "raw_code": "def remove_brew_expat\n    env_vars = %w[CMAKE_PREFIX_PATH HOMEBREW_INCLUDE_PATHS HOMEBREW_LIBRARY_PATHS PATH PKG_CONFIG_PATH]\n    ENV.remove env_vars, /(^|:)#{Regexp.escape(Formula[\"expat\"].opt_prefix)}[^:]*/\n    ENV.remove \"HOMEBREW_DEPENDENCIES\", \"expat\"\n  end",
+        "comment": "Work around superenv to avoid mixing `expat` usage in libraries across dependency tree. Brew `expat` usage in Python has low impact as it isn't loaded unless pyexpat is used. TODO: Consider adding a DSL for this or change how we handle Python's `expat` dependency",
+        "label": "How-to-use",
+        "id": "24"
+    },
+    {
+        "raw_code": "def remove_brew_expat\n    env_vars = %w[CMAKE_PREFIX_PATH HOMEBREW_INCLUDE_PATHS HOMEBREW_LIBRARY_PATHS PATH PKG_CONFIG_PATH]\n    ENV.remove env_vars, /(^|:)#{Regexp.escape(Formula[\"expat\"].opt_prefix)}[^:]*/\n    ENV.remove \"HOMEBREW_DEPENDENCIES\", \"expat\"\n  end",
+        "comment": "Work around superenv to avoid mixing `expat` usage in libraries across dependency tree. Brew `expat` usage in Python has low impact as it isn't loaded unless pyexpat is used. TODO: Consider adding a DSL for this or change how we handle Python's `expat` dependency",
+        "label": "How-to-use",
+        "id": "25"
+    },
+    {
+        "raw_code": "def post_install\n    lib_python_path = Pathname.glob(libexec/\"lib/python*\").first\n    lib_python_path.each_child do |f|\n      next unless f.symlink?\n\n      realpath = f.realpath\n      rm f\n      ln_s realpath, f\n    end",
+        "comment": "Avoid relative paths",
+        "label": "Others",
+        "id": "26"
+    },
+    {
+        "raw_code": "def install\n    protobuf_flags = Utils.safe_popen_read(\"pkgconf\", \"--cflags\", \"--libs\", \"protobuf\").chomp.split.uniq\n    system ENV.cxx, \"-std=c++17\", *Dir[\"generator/*.cc\"], \"-o\", \"protoc-gen-js\", \"-I.\", *protobuf_flags, \"-lprotoc\"\n    bin.install \"protoc-gen-js\"\n  end",
+        "comment": "We manually build rather than use Bazel as Bazel will build its own copy of Abseil and Protobuf that get statically linked into binary. Check for any upstream changes at https://github.com/protocolbuffers/protobuf-javascript/blob/main/generator/BUILD.bazel",
+        "label": "How-to-use",
+        "id": "27"
+    },
+    {
+        "raw_code": "def prefix_site_packages\n    HOMEBREW_PREFIX/\"lib/pypy/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages",
+        "label": "What",
+        "id": "28"
+    },
+    {
+        "raw_code": "def scripts_folder\n    HOMEBREW_PREFIX/\"share/pypy\"\n  end",
+        "comment": "Where setuptools will install executable scripts",
+        "label": "What",
+        "id": "29"
+    },
+    {
+        "raw_code": "def distutils\n    libexec/\"lib-python/2.7/distutils\"\n  end",
+        "comment": "The Cellar location of distutils",
+        "label": "What",
+        "id": "30"
+    },
+    {
+        "raw_code": "def site_packages(root)\n    root/\"lib/pypy#{abi_version}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages",
+        "label": "What",
+        "id": "31"
+    },
+    {
+        "raw_code": "def scripts_folder\n    HOMEBREW_PREFIX/\"share/pypy#{abi_version}\"\n  end",
+        "comment": "Where setuptools will install executable scripts",
+        "label": "What",
+        "id": "32"
+    },
+    {
+        "raw_code": "def distutils\n    site_packages(libexec).parent/\"distutils\"\n  end",
+        "comment": "The Cellar location of distutils",
+        "label": "What",
+        "id": "33"
+    },
+    {
+        "raw_code": "def site_packages(root)\n    root/\"lib/pypy#{abi_version}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages",
+        "label": "What",
+        "id": "34"
+    },
+    {
+        "raw_code": "def scripts_folder\n    HOMEBREW_PREFIX/\"share/pypy#{abi_version}\"\n  end",
+        "comment": "Where setuptools will install executable scripts",
+        "label": "What",
+        "id": "35"
+    },
+    {
+        "raw_code": "def distutils\n    site_packages(libexec).parent/\"distutils\"\n  end",
+        "comment": "The Cellar location of distutils",
+        "label": "What",
+        "id": "36"
+    },
+    {
+        "raw_code": "def site_packages\n    HOMEBREW_PREFIX/\"lib/python#{version.major_minor}t/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages.",
+        "label": "What",
+        "id": "37"
+    },
+    {
+        "raw_code": "def site_packages\n    HOMEBREW_PREFIX/\"lib/python#{version.major_minor}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages.",
+        "label": "What",
+        "id": "38"
+    },
+    {
+        "raw_code": "def site_packages\n    HOMEBREW_PREFIX/\"lib/python#{version.major_minor}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages.",
+        "label": "What",
+        "id": "39"
+    },
+    {
+        "raw_code": "def site_packages\n    HOMEBREW_PREFIX/\"lib/python#{version.major_minor}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages.",
+        "label": "What",
+        "id": "40"
+    },
+    {
+        "raw_code": "def site_packages\n    HOMEBREW_PREFIX/\"lib/python#{version.major_minor}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages.",
+        "label": "What",
+        "id": "41"
+    },
+    {
+        "raw_code": "def site_packages\n    HOMEBREW_PREFIX/\"lib/python#{version.major_minor}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages.",
+        "label": "What",
+        "id": "42"
+    },
+    {
+        "raw_code": "def site_packages\n    HOMEBREW_PREFIX/\"lib/python#{version.major_minor}/site-packages\"\n  end",
+        "comment": "The HOMEBREW_PREFIX location of site-packages.",
+        "label": "What",
+        "id": "43"
+    },
+    {
+        "raw_code": "def dprod(arr0, arr1):\n        return sum([x*y for x,y in zip(arr0, arr1)])\n    PYTHON\n    system pythran, testpath/\"dprod.py\"\n    rm(testpath/\"dprod.py\")\n\n    assert_equal \"11\", shell_output(\"#{python3} -c 'import dprod; print(dprod.dprod([1,2], [3,4]))'\").chomp\n\n    (testpath/\"arc_distance.py\").write <<~PYTHON\n      #pythran export arc_distance(float[], float[], float[], float[])\n      import numpy as np\n      def arc_distance(theta_1, phi_1, theta_2, phi_2):\n        \"\"\"\n        Calculates the pairwise arc distance between all points in vector a and b.\n        \"\"\"\n        temp = np.sin((theta_2-theta_1)/2)**2 + np.cos(theta_1)*np.cos(theta_2)*np.sin((phi_2-phi_1)/2)**2\n        distance_matrix = 2 * np.arctan2(np.sqrt(temp), np.sqrt(1-temp))\n        return distance_matrix\n    PYTHON\n\n    # Test with configured gcc to detect breakages from gcc major versions and for OpenMP support\n    with_env(CC: nil, CXX: nil) do\n      system pythran, \"-DUSE_XSIMD\", \"-fopenmp\", \"-march=native\", testpath/\"arc_distance.py\"\n    end\n    rm(testpath/\"arc_distance.py\")\n\n    system python3, \"-c\", <<~PYTHON\n      import numpy as np\n      import arc_distance\n      d = arc_distance.arc_distance(\n        np.array([12.4,0.5,-5.6,12.34,9.21]), np.array([-5.6,3.4,2.3,-23.31,12.6]),\n        np.array([3.45,1.5,55.4,567.0,43.2]), np.array([56.1,3.4,1.34,-56.9,-3.4]),\n      )\n      assert ([1.927, 1., 1.975, 1.83, 1.032] == np.round(d, 3)).all()\n    PYTHON\n  end",
+        "comment": "pythran export dprod(int list, int list)",
+        "label": "Property",
+        "id": "44"
+    },
+    {
+        "raw_code": "def self.default_specifications_dir\n          File.join(Gem.old_default_dir, \"specifications\", \"default\")\n        end",
+        "comment": "https://github.com/Homebrew/homebrew-core/issues/40872#issuecomment-542092547 https://github.com/Homebrew/homebrew-core/pull/48329#issuecomment-584418161",
+        "label": "What",
+        "id": "45"
+    },
+    {
+        "raw_code": "def self.default_specifications_dir\n          File.join(Gem.old_default_dir, \"specifications\", \"default\")\n        end",
+        "comment": "https://github.com/Homebrew/homebrew-core/issues/40872#issuecomment-542092547 https://github.com/Homebrew/homebrew-core/pull/48329#issuecomment-584418161",
+        "label": "What",
+        "id": "46"
+    },
+    {
+        "raw_code": "def self.default_specifications_dir\n          File.join(Gem.old_default_dir, \"specifications\", \"default\")\n        end",
+        "comment": "https://github.com/Homebrew/homebrew-core/issues/40872#issuecomment-542092547 https://github.com/Homebrew/homebrew-core/pull/48329#issuecomment-584418161",
+        "label": "What",
+        "id": "47"
+    },
+    {
+        "raw_code": "def self.default_specifications_dir\n          File.join(Gem.old_default_dir, \"specifications\", \"default\")\n        end",
+        "comment": "https://github.com/Homebrew/homebrew-core/issues/40872#issuecomment-542092547 https://github.com/Homebrew/homebrew-core/pull/48329#issuecomment-584418161",
+        "label": "What",
+        "id": "48"
+    },
+    {
+        "raw_code": "def self.default_specifications_dir\n          File.join(Gem.old_default_dir, \"specifications\", \"default\")\n        end",
+        "comment": "https://github.com/Homebrew/homebrew-core/issues/40872#issuecomment-542092547 https://github.com/Homebrew/homebrew-core/pull/48329#issuecomment-584418161",
+        "label": "What",
+        "id": "49"
+    },
+    {
+        "raw_code": "def post_install\n    lib_python_path = Pathname.glob(libexec/\"lib/python*\").first\n    lib_python_path.each_child do |f|\n      next unless f.symlink?\n\n      realpath = f.realpath\n      rm f\n      ln_s realpath, f\n    end",
+        "comment": "Avoid relative paths",
+        "label": "Others",
+        "id": "50"
+    },
+    {
+        "raw_code": "def caveats\n    <<~EOS\n      This formula provides only the `vcpkg` executable. To use vcpkg:\n        git clone https://github.com/microsoft/vcpkg \"$HOME/vcpkg\"\n        export VCPKG_ROOT=\"$HOME/vcpkg\"\n    EOS\n  end",
+        "comment": "This is specific to the way we install only the `vcpkg` tool.",
+        "label": "What",
+        "id": "51"
+    },
+    {
+        "raw_code": "def gdk_so_ver\n    Formula[\"gdk-pixbuf\"].gdk_so_ver\n  end",
+        "comment": "Constants for gdk-pixbuf's multiple version numbers, which are the same as the constants in the gdk-pixbuf formula.",
+        "label": "What",
+        "id": "52"
+    },
+    {
+        "raw_code": "def module_subdir\n    \"lib/gdk-pixbuf-#{gdk_so_ver}/#{gdk_module_ver}/loaders\"\n  end",
+        "comment": "Subfolder that pixbuf loaders are installed into.",
+        "label": "Property",
+        "id": "53"
+    },
+    {
+        "raw_code": "def post_install\n    ENV[\"GDK_PIXBUF_MODULEDIR\"] = \"#{HOMEBREW_PREFIX}/#{module_subdir}\"\n    system Formula[\"gdk-pixbuf\"].opt_bin/\"gdk-pixbuf-query-loaders\", \"--update-cache\"\n  end",
+        "comment": "After the loader is linked in, update the global cache of pixbuf loaders",
+        "label": "What",
+        "id": "54"
+    }
+]

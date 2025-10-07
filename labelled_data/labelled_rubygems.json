@@ -1,0 +1,518 @@
+[
+    {
+        "raw_code": "def fields\n    field :id, as: :id\n  end",
+        "comment": "self.includes = [] self.attachments = [] self.search = { query: -> { query.ransack(id_eq: params[:q], m: \"or\").result(distinct: false) } }",
+        "label": "Property",
+        "id": "1"
+    },
+    {
+        "raw_code": "def reject_path_params_param\n    params.delete(:path_params)\n  end",
+        "comment": "Fix for https://github.com/kaminari/kaminari/pull/1123, remove after this is merged and in use.",
+        "label": "What",
+        "id": "2"
+    },
+    {
+        "raw_code": "def no_referrer\n    headers[\"Referrer-Policy\"] = \"no-referrer\"\n  end",
+        "comment": "Avoid leaking confirmation token in referrer header on certain pages",
+        "label": "Others",
+        "id": "3"
+    },
+    {
+        "raw_code": "def create\n    user = find_user_for_create\n\n    if user\n      user.generate_confirmation_token(reset_unconfirmed_email: false)\n      Mailer.email_confirmation(user).deliver_later if user.save\n    end",
+        "comment": "used to resend confirmation mail for email validation",
+        "label": "What",
+        "id": "4"
+    },
+    {
+        "raw_code": "def unconfirmed\n    if current_user.generate_confirmation_token(reset_unconfirmed_email: false) && current_user.save\n      email_reset(current_user)\n      flash[:notice] = t(\"profiles.update.confirmation_mail_sent\")\n    else\n      flash[:notice] = t(\"try_again\")\n    end",
+        "comment": "used to resend confirmation mail for unconfirmed_email validation",
+        "label": "Why",
+        "id": "5"
+    },
+    {
+        "raw_code": "def update\n  end",
+        "comment": "not possible to arrive here because of require_mfa_enabled + require_mfa, but it must stay for rails to be happy.",
+        "label": "Why",
+        "id": "6"
+    },
+    {
+        "raw_code": "def index\n    @memberships = current_user.memberships.includes(:organization)\n  end",
+        "comment": "GET /organizations",
+        "label": "Others",
+        "id": "7"
+    },
+    {
+        "raw_code": "def show\n    @latest_events = [] # @organization.latest_events\n    @gems = @organization\n      .rubygems\n      .with_versions\n      .by_downloads\n      .preload(:most_recent_version, :gem_download)\n      .load_async\n    @gems_count = @organization.rubygems.with_versions.count\n    @memberships = @organization.memberships.includes(:user)\n    @memberships_count = @organization.memberships.count\n  end",
+        "comment": "GET /organizations/1",
+        "label": "What",
+        "id": "8"
+    },
+    {
+        "raw_code": "def update\n    if @ownership.update(update_params)\n      OwnersMailer.with(ownership: @ownership, authorizer: current_user).owner_updated.deliver_later\n      redirect_to rubygem_owners_path(@ownership.rubygem.slug), notice: t(\".success_notice\", handle: @ownership.user.name)\n    else\n      index_with_error @ownership.errors.full_messages.to_sentence, :unprocessable_content\n    end",
+        "comment": "This action is used to update a user's ownership role. This endpoint currently assumes the role is the only thing that can be updated. If more fields are added to the ownership this action will need to be tweaked a bit",
+        "label": "How-to-use",
+        "id": "9"
+    },
+    {
+        "raw_code": "def password_reset_session_verified\n    reset_session\n    @user.update!(confirmation_token: nil)\n    session[:password_reset_verified_user] = @user.id\n    session[:password_reset_verified] = Gemcutter::PASSWORD_VERIFICATION_EXPIRY.from_now\n  end",
+        "comment": "The order of these methods intends to leave the session fully reset if we fail to invalidate the token for some reason, since this would indicate something is wrong with the user, necessitating help from an admin.",
+        "label": "Why",
+        "id": "10"
+    },
+    {
+        "raw_code": "def revoke\n    tokens = params.expect(_json: [%i[token type url]]).index_by { |t| hashed_key(t.require(:token)) }\n    api_keys = ApiKey.where(hashed_key: tokens.keys).index_by(&:hashed_key)\n    resp = tokens.map do |hashed_key, t|\n      api_key = api_keys[hashed_key]\n      label = if api_key&.expire!\n                schedule_revoke_email(api_key, t[:url])\n                \"true_positive\"\n              else\n                \"false_positive\"\n              end",
+        "comment": "API called by GitHub Secret Scanning tool see docs https://docs.github.com/en/developers/overview/secret-scanning Sample message:  POST / HTTP/1.1 Host: HOST Accept: */* content-type: application/json GITHUB-PUBLIC-KEY-IDENTIFIER: 90a421169f0a406205f1563a953312f0be898d3c7b6c06b681aa86a874555f4a GITHUB-PUBLIC-KEY-SIGNATURE: MEUCICxTWEpKo7BorLKutFZDS6ie+YFg6ecU7kEA6rUUSJqsAiEA9bK0Iy6vk2QpZOOg2IpBhZ3JRVdwXx1zmgmNAR7Izpc= Content-Length: 0000  [{\"token\": \"some_token\", \"type\": \"some_type\", \"url\": \"some_url\"}] ",
+        "label": "How-to-use",
+        "id": "11"
+    },
+    {
+        "raw_code": "def mfa_session_active?\n      return false if session[:mfa_expires_at].nil?\n      delete_mfa_expiry_session if Time.current > session[:mfa_expires_at]\n      session[:mfa_expires_at].present?\n    end",
+        "comment": "Clear the session key when mfa has expired. This makes mfa_session_active? before_action guards simpler to write.",
+        "label": "What",
+        "id": "12"
+    },
+    {
+        "raw_code": "def initialize_mfa(user = @user)\n    delete_mfa_session\n    create_new_mfa_expiry\n    session[:mfa_login_started_at] = Time.now.utc.to_s\n    session[:mfa_user] = user.id\n  end",
+        "comment": "Call initialize_mfa once at the start of the MFA flow for a user (after login, after reset token verified).",
+        "label": "How-to-use",
+        "id": "13"
+    },
+    {
+        "raw_code": "def ensure_valid_transfer\n    return if @rubygem_transfer.organization.present? && @rubygem_transfer.rubygems.any?\n\n    redirect_to organization_transfer_rubygems_path\n  end",
+        "comment": "This is a quick sanity check to ensure we have a ready RubygemTransfer. If the transfer doesn't have an associated Organization, check the user authorization would raise a Pundit::NilClassPolicy",
+        "label": "How-it-is-done",
+        "id": "14"
+    },
+    {
+        "raw_code": "def javascript_inline_importmap_tag(importmap_json = Rails.application.importmap.to_json(resolver: self))\n    tag.script importmap_json.html_safe,\n      type: \"importmap\", \"data-turbo-track\": \"reload\"\n  end",
+        "comment": "Copied from importmap-rails but with the nonce removed. We rely on the sha256 hash instead. Relying on the hash improves the caching behavior by not sending the cached nonce to the client.",
+        "label": "What",
+        "id": "15"
+    },
+    {
+        "raw_code": "def plain_paginate(items)\n    render \"layouts/plain_paginate\", items: items\n  end",
+        "comment": "replacement for Kaminari::ActionViewExtension#paginate only shows `next` and `prev` links and not page numbers, saving a COUNT(DISTINCT ..) query",
+        "label": "Property",
+        "id": "16"
+    },
+    {
+        "raw_code": "def error_messages_for(*params)\n    options = params.extract_options!.symbolize_keys\n\n    objects = Array.wrap(options.delete(:object) || params).map do |object|\n      object = instance_variable_get(\"@#{object}\") unless object.respond_to?(:to_model)\n      object = convert_to_model(object)\n\n      if object.class.respond_to?(:model_name)\n        options[:object_name] ||= object.class.model_name.human.downcase\n      end",
+        "comment": "This code was extracted from https://github.com/joelmoss/dynamic_form/blob/master/lib/action_view/helpers/dynamic_form.rb#L186 with a modification to fix https://github.com/rubygems/rubygems.org/issues/1834 issue. We also removed the dynamic_form dependency with this.",
+        "label": "What",
+        "id": "17"
+    },
+    {
+        "raw_code": "def icon_tag(name, size: 6, **options)\n    options[:class] = \"h-#{size} w-#{size} flex-shrink-0 stroke-current stroke-0 fill-current #{options[:class]}\"\n    options[:height] = size * 4\n    options[:width] = size * 4\n    options[:aria] ||= { hidden: true }\n    options[:role] ||= \"graphics-symbol\"\n\n    tag.svg(**options) do\n      concat tag.use(href: \"#{image_path('icons.svg')}##{name}\")\n    end",
+        "comment": "size is in tailwind units (6 = 24px)",
+        "label": "What",
+        "id": "18"
+    },
+    {
+        "raw_code": "def download_counts(log_ticket)\n    file = log_ticket.body\n    raise LogFileNotFoundError if file.nil?\n\n    ok_status           = Rack::Utils::SYMBOL_TO_STATUS_CODE[:ok]\n    not_modified_status = Rack::Utils::SYMBOL_TO_STATUS_CODE[:not_modified]\n\n    file.each_line.with_object(Hash.new(0)) do |log_line, accum|\n      path, response_code = log_line.split[10, 2]\n      case response_code.to_i\n      # Only count successful downloads\n      # NB: we consider a 304 response a download attempt\n      when ok_status, not_modified_status\n        if (match = PATH_PATTERN.match(path))\n          accum[match[:path]] += 1\n        end",
+        "comment": "Takes an enumerator of log lines and returns a hash of download counts E.g. { 'rails-4.0.0' => 25, 'rails-4.2.0' => 50 }",
+        "label": "Property",
+        "id": "19"
+    },
+    {
+        "raw_code": "def inspect\n        # We check defined?(@attributes) not to issue warnings if the object is\n        # allocated but not initialized.\n        inspection = if defined?(@attributes) && @attributes\n                       attribute_names.filter_map do |name|\n                         \"#{name}: #{_read_attribute(name)}\" if @attributes.key?(name)\n                       end.join(\", \")\n                     else\n                       \"not initialized\"\n                     end",
+        "comment": "Returns the contents of the record as a nicely formatted string.",
+        "label": "Property",
+        "id": "20"
+    },
+    {
+        "raw_code": "def pretty_print(pp)\n        pp.object_address_group(self) do\n          if defined?(@attributes) && @attributes\n            attr_names = attribute_names.select { |name| @attributes.key?(name) }\n            pp.seplist(attr_names, proc { pp.text \",\" }) do |attr_name|\n              pp.breakable \" \"\n              pp.group(1) do\n                pp.text attr_name\n                pp.text \":\"\n                pp.breakable\n                value = _read_attribute(attr_name)\n                pp.pp value\n              end",
+        "comment": "Takes a PP and prettily prints this record to it, allowing you to get a nice result from <tt>pp record</tt> when pp is required.",
+        "label": "Property",
+        "id": "21"
+    },
+    {
+        "raw_code": "def most_downloaded_gem_count\n      count_by_sql \"SELECT MAX(count) FROM gem_downloads WHERE rubygem_id <> 0\"\n    end",
+        "comment": "version_id: 0 stores count for total gem downloads we need to find the second maximum",
+        "label": "What",
+        "id": "22"
+    },
+    {
+        "raw_code": "def bulk_update(ary)\n      updates_by_gem = {}\n      updates_by_version = init_updates_by_version(ary)\n\n      ary.each do |full_name, count|\n        if updates_by_version.key?(full_name)\n          version, old_count = updates_by_version[full_name]\n          updates_by_version[full_name] = [version, old_count + count]\n        end",
+        "comment": "Takes an array where members have the form [full_name, count] E.g.: ['rake-10.4.2', 1]",
+        "label": "What",
+        "id": "23"
+    },
+    {
+        "raw_code": "def update_gem_downloads(updates_by_gem)\n      updates_by_version = most_recent_version_downloads(updates_by_gem.keys)\n\n      bulk_update_query = downloads_by_gem(updates_by_gem.keys).map do |id, downloads|\n        update_query(id, downloads + updates_by_gem[id], updates_by_version[id])\n      end",
+        "comment": "updates the downloads field of rubygems in DB and ES index input: { rubygem_id => download_count_to_increment }",
+        "label": "What",
+        "id": "24"
+    },
+    {
+        "raw_code": "def documentation_uri\n    return version.metadata[\"documentation_uri\"].presence if version.metadata_uri_set?\n    linkset&.docs.presence || \"https://www.rubydoc.info/gems/#{rubygem.name}/#{version.number}\"\n  end",
+        "comment": "documentation uri: if metadata has it defined, use that or if linksets has it defined, use that else, generate one from gem name and version number",
+        "label": "Others",
+        "id": "25"
+    },
+    {
+        "raw_code": "def download_uri\n    \"/downloads/#{version.gem_file_name}\" if version.indexed\n  end",
+        "comment": "technically this is a path",
+        "label": "How-to-use",
+        "id": "26"
+    },
+    {
+        "raw_code": "def homepage_uri\n    version.metadata[\"homepage_uri\"].presence || linkset&.home\n  end",
+        "comment": "excluded from metadata_uri_set? check",
+        "label": "Why",
+        "id": "27"
+    },
+    {
+        "raw_code": "def inspect\n    attrs = { :@rubygem => @rubygem, :@owner => owner, :@message => @message, :@code => @code }.map do |attr, value|\n      \"#{attr}=#{value.inspect}\"\n    end",
+        "comment": "Overridden so we don't get megabytes of the raw data printing out",
+        "label": "Others",
+        "id": "28"
+    },
+    {
+        "raw_code": "def write_gem(body, spec_contents)\n    gem_path = \"gems/#{@version.gem_file_name}\"\n    gem_contents = body.string\n\n    spec_path = \"quick/Marshal.4.8/#{@version.full_name}.gemspec.rz\"\n\n    # do all processing _before_ we upload anything to S3, so we lower the chances of orphaned files\n    RubygemFs.instance.store(gem_path, gem_contents, checksum_sha256: version.sha256,\n                             metadata: {\n                               \"gem\" => version.rubygem.name, \"version\" => version.number, \"platform\" => version.platform,\n                               \"surrogate-key\" => \"gem/#{version.rubygem.name}\", \"sha256\" => version.sha256\n                             })\n    RubygemFs.instance.store(spec_path, spec_contents, checksum_sha256: version.spec_sha256)\n\n    Fastly.purge(path: gem_path)\n    Fastly.purge(path: spec_path)\n  end",
+        "comment": "we validate that the version full_name == spec.original_name",
+        "label": "What",
+        "id": "29"
+    },
+    {
+        "raw_code": "def find_public_version(number, platform = nil)\n    if platform\n      public_versions.find_by(number:, platform:)\n    else\n      public_versions.find_by(number:)\n    end",
+        "comment": "NB: this intentionally does not default the platform to ruby. Without platform, finds the most recent version by (position, created_at) ignoring platform.",
+        "label": "What",
+        "id": "30"
+    },
+    {
+        "raw_code": "def protected_days\n    days = (updated_at - 101.days.ago).to_i / 1.day\n    days.positive? ? days : 0\n  end",
+        "comment": "returns days left before the reserved namespace will be released 100 + 1 days are added so that last_protected_day / 1.day = 1",
+        "label": "Property",
+        "id": "31"
+    },
+    {
+        "raw_code": "def not_protected?\n    updated_at < 100.days.ago || created_at > 30.days.ago\n  end",
+        "comment": "a gem namespace is not protected if it is updated(yanked) in more than 100 days or it is created in last 30 days",
+        "label": "Property",
+        "id": "32"
+    },
+    {
+        "raw_code": "def self.fails_since_last_delivery(email)\n    last_delivered_at = where(email: email, event_type: \"delivered\").maximum(:occurred_at)\n\n    fails_query =\n      select(\"DISTINCT(date_trunc('day', occurred_at))\")\n        .where(email: email, event_type: %w[dropped bounce])\n\n    fails_query = fails_query.where(\"occurred_at > ?\", last_delivered_at) if last_delivered_at\n\n    fails_query.count\n  end",
+        "comment": "To make allowances for occasional inbox down time, this counts a maximum of one fail per day, e.g.:  - If 2 emails are sent on the same day, and both fail, then this counts as only 1 fail, not 2 fails.  - If 2 emails are sent on 2 separate days, and both fail, then this counts as 2 fails, as the failures were on different days.",
+        "label": "Others",
+        "id": "33"
+    },
+    {
+        "raw_code": "def valid_confirmation_token?\n    confirmation_token.present? && Time.zone.now.before?(token_expires_at)\n  end",
+        "comment": "confirmation token expires after 3 hours",
+        "label": "What",
+        "id": "34"
+    },
+    {
+        "raw_code": "def self.new_pushed_versions(limit = 5)\n    subquery = <<~SQL.squish\n      versions.rubygem_id IN (SELECT versions.rubygem_id FROM versions\n        GROUP BY versions.rubygem_id HAVING COUNT(versions.rubygem_id) = 1\n        ORDER BY versions.rubygem_id DESC LIMIT :limit)\n    SQL\n\n    where(subquery, limit: limit).by_created_at\n  end",
+        "comment": "This method returns the new versions for brand new rubygems",
+        "label": "Property",
+        "id": "35"
+    },
+    {
+        "raw_code": "def self.created_between(start_time, end_time)\n    where(created_at: start_time..end_time).order(:created_at, :id)\n  end",
+        "comment": "id is added to ORDER to return stable results for gems pushed at the same time",
+        "label": "Property",
+        "id": "36"
+    },
+    {
+        "raw_code": "def rely_on_built_at?\n    return false if created_at.to_date != RUBYGEMS_IMPORT_DATE\n\n    built_at && built_at <= RUBYGEMS_IMPORT_DATE\n  end",
+        "comment": "Originally used to prevent showing misidentified dates for gems predating RubyGems, this method also covers cases where a Gem::Specification date is obviously invalid due to build-time considerations.",
+        "label": "What",
+        "id": "37"
+    },
+    {
+        "raw_code": "def paths\n    fs.each_key(prefix: path_root).map { |key| key.delete_prefix path_root }\n  end",
+        "comment": " Access stored content",
+        "label": "Others",
+        "id": "38"
+    },
+    {
+        "raw_code": "def entry(path)\n    path = path.to_s\n    return if path.blank?\n    response = fs.head path_key(path)\n    return if response.blank? || response[:metadata].blank?\n    RubygemContents::Entry.from_metadata(response[:metadata]) { |entry| content(entry.fingerprint) }\n  end",
+        "comment": "@return [RubygemContents::Entry]",
+        "label": "What",
+        "id": "39"
+    },
+    {
+        "raw_code": "def store_package(package)\n    read_and_store_entries(package)\n    store_spec package.spec\n  end",
+        "comment": " Store version content @param [Gem::Package] package",
+        "label": "What",
+        "id": "40"
+    },
+    {
+        "raw_code": "def store_entries(entries)\n    path_checksums = {}\n    entries.each do |entry|\n      path_checksums[entry.path] = entry.sha256 if entry.sha256.present?\n      store_entry entry\n    end",
+        "comment": "Writing version contents is done in one pass, collecting all the checksums and paths and writing them to the .sha256 checksums file at the end. All files in the gem  must be enumerated so no checksums are missing from the .sha256 file stored at the end. @param [Enumerable<RubygemContents::Entry>] entries",
+        "label": "What",
+        "id": "41"
+    },
+    {
+        "raw_code": "def store_entry(entry)\n    store_path entry\n    contents.store entry if entry.body_persisted?\n  end",
+        "comment": "@param [RubygemContents::Entry] entry",
+        "label": "Property",
+        "id": "42"
+    },
+    {
+        "raw_code": "def store_path(entry)\n    fs.store(\n      path_key(entry.path),\n      entry.fingerprint,\n      content_type: \"text/plain; charset=us-ascii\",\n      metadata: entry.metadata\n    )\n  end",
+        "comment": "@param [RubygemContents::Entry] entry",
+        "label": "Property",
+        "id": "43"
+    },
+    {
+        "raw_code": "def store_checksums(checksums)\n    fs.store(\n      checksums_key,\n      ShasumFormat.generate(checksums),\n      content_type: \"text/plain\"\n    )\n  end",
+        "comment": "@param [Hash<String, String>] checksums path => checksum",
+        "label": "What",
+        "id": "44"
+    },
+    {
+        "raw_code": "def store_spec(spec)\n    ruby_spec = spec.to_ruby\n    mime = Magic.buffer(ruby_spec, Magic::MIME)\n    fs.store spec_key, ruby_spec, content_type: mime\n  end",
+        "comment": "@param [Gem::Specification] spec",
+        "label": "Property",
+        "id": "45"
+    },
+    {
+        "raw_code": "def set_statement_principals\n    return unless provider\n    access_policy&.statements&.each do |statement|\n      statement.principal ||= OIDC::AccessPolicy::Statement::Principal.new\n      next if statement.principal.oidc.present?\n      statement.principal.oidc = provider.issuer\n    end",
+        "comment": "Since the only current value of this is the provider's issuer, we can set it automatically.",
+        "label": "How-to-use",
+        "id": "46"
+    },
+    {
+        "raw_code": "def from_tar_entry(entry, magic: Magic.open(Magic::MIME))\n      attrs = {\n        size: entry.size,\n        path: entry.full_name,\n        file_mode: entry.header.mode.to_fs(8)\n      }\n\n      if entry.size > SIZE_LIMIT\n        mime = magic.buffer(entry.read(BYTES_FOR_MAGIC_DETECTION))\n        return new(mime:, **attrs)\n      end",
+        "comment": "Passing in an existing Magic instance is very important for memory usage. Magic.open(Magic::MIME) opens a new instance for each call and they are very memory heavy.",
+        "label": "How-to-use",
+        "id": "47"
+    },
+    {
+        "raw_code": "def resolve\n      if rubygems_org_admin?\n        scope.all\n      else\n        scope.none\n      end",
+        "comment": "NOTE: Be explicit about which records you allow access to!",
+        "label": "What",
+        "id": "48"
+    },
+    {
+        "raw_code": "def resolve\n      scope.all\n    end",
+        "comment": "NOTE: Be explicit about which records you allow access to!",
+        "label": "What",
+        "id": "49"
+    },
+    {
+        "raw_code": "def resolve\n      scope.all\n    end",
+        "comment": "NOTE: Be explicit about which records you allow access to!",
+        "label": "What",
+        "id": "50"
+    },
+    {
+        "raw_code": "def resolve\n      if rubygems_org_admin?\n        scope.all\n      else\n        scope.where(id: user.id)\n      end",
+        "comment": "NOTE: Be explicit about which records you allow access to!",
+        "label": "What",
+        "id": "51"
+    },
+    {
+        "raw_code": "def title=(title)\n    view_context.instance_variable_set :@title, title\n  end",
+        "comment": "The ApplicationView is an abstract class for all your views. By default, it inherits from `ApplicationComponent`, but you can change that to `Phlex::HTML` if you want to keep views and components independent.",
+        "label": "What",
+        "id": "52"
+    },
+    {
+        "raw_code": "def scrollable(**options, &)\n    options[:class] = \"#{options[:class]} lg:max-h-96 lg:overflow-y-auto \" \\\n                      \"-mx-4 -mb-6 md:-mx-10 md:-mb-10 \" \\\n                      \"border-t border-neutral-200 dark:border-neutral-800\"\n    div(**options) do\n      div(class: \"px-4 pt-6 md:px-10 md:pt-10\", &)\n    end",
+        "comment": "removes padding inside the \"content\" area of the card so scroll bar and overflaw appear correctly adds a border to the top of the scrollable area to explain the content being hidden on scroll",
+        "label": "What",
+        "id": "53"
+    },
+    {
+        "raw_code": "def render(component = nil, **args, &block)\n      if block\n        super { component.instance_exec component, &block }\n      else\n        super\n      end",
+        "comment": "see https://github.com/ViewComponent/lookbook/issues/584",
+        "label": "What",
+        "id": "54"
+    },
+    {
+        "raw_code": "def call\n    if env[\"omniauth.error.type\"] == :csrf_detected && env[\"HTTP_SEC_FETCH_SITE\"] == \"cross-site\"\n      request = Rack::Request.new(env)\n      # avoid overwriting the (real) session cookie\n      request.session.options[:skip] = true\n      # redirect to the same path, but with a meta refresh to avoid the browser treating the request as cross-site\n      [303, {}, [\"<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; #{request.fullpath}' /></head></html>\"]]\n    else\n      super\n    end",
+        "comment": "ensures that same-site: strict cookies are available for csrf validation",
+        "label": "What",
+        "id": "55"
+    },
+    {
+        "raw_code": "def up\n    change_table(:maintenance_tasks_runs) do |t|\n      t.change(:cursor, :string)\n    end",
+        "comment": "This migration will clear all existing data in the cursor column with MySQL. Ensure no Tasks are paused when this migration is deployed, or they will be resumed from the start. Running tasks are able to gracefully handle this change, even if interrupted.",
+        "label": "Property",
+        "id": "56"
+    },
+    {
+        "raw_code": "def self.purge(options = {})\n    return unless ENV[\"FASTLY_DOMAINS\"].present? && ENV[\"FASTLY_API_KEY\"].present?\n\n    connection = make_connection\n\n    ENV[\"FASTLY_DOMAINS\"].split(\",\").each do |domain|\n      url = \"https://#{domain}/#{options[:path]}\"\n      trace(\"gemcutter.fastly.purge\", resource: url,\n            tags: { \"gemcutter.fastly.domain\" => domain, \"gemcutter.fastly.path\" => options[:path], \"gemcutter.fastly.soft\" => options[:soft] }) do\n        headers = options[:soft] ? { \"Fastly-Soft-Purge\" => \"1\" } : {}\n        headers[\"Fastly-Key\"] = ENV[\"FASTLY_API_KEY\"]\n\n        json = connection.get(url, nil, headers) do |req|\n          req.http_method = :purge\n        end",
+        "comment": "These are not kwargs because delayed_job doesn't correctly support kwargs in Fastly.delay.purge See: https://github.com/collectiveidea/delayed_job/issues/1134",
+        "label": "Why",
+        "id": "57"
+    },
+    {
+        "raw_code": "def each(&blk)\n    return enum_for(__method__).lazy unless blk\n    open_data_tar { |data_tar| data_tar.each(&blk) }\n  end",
+        "comment": "NOTE: For efficiency sake we do not verify the gem before reading the contents. This means that if you try to access anything on the package before IO.rewind is called, it will crash trying to read from the wrong position. This saves as much memory allocation as the unpacked size of the gem.",
+        "label": "How-to-use",
+        "id": "58"
+    },
+    {
+        "raw_code": "def key_for(path)\n      path.relative_path_from(@base_dir).to_s\n    end",
+        "comment": "always return key relative to bucket, same as S3",
+        "label": "What",
+        "id": "59"
+    },
+    {
+        "raw_code": "def self.parse(body)\n    body.to_s.each_line(chomp: true).to_h do |line|\n      line.split(\"  \", 2).reverse\n    end",
+        "comment": "Splits a shasum file format into a Hash of path => checksum  @param [String] body @return [Hash] path => checksum",
+        "label": "What",
+        "id": "60"
+    },
+    {
+        "raw_code": "def self.generate(checksums)\n    checksums.sort.filter_map do |path, checksum|\n      next if path.blank? || checksum.blank?\n      \"#{checksum}  #{path}\\n\"\n    end.join\n  end",
+        "comment": "Returns a file body matching the output of shasum command.  @param [Hash] checksums path => checksum @return [String] file body",
+        "label": "What",
+        "id": "61"
+    },
+    {
+        "raw_code": "def scope_for_policy_class(policy_class = nil)\n    return if policy_class.blank?\n\n    return unless policy_class.present? && defined?(Admin.const_get(policy_class.to_s)&.const_get(\"Scope\"))\n    policy_class::Scope\n  end",
+        "comment": "Fetches the scope for a given policy",
+        "label": "How-to-use",
+        "id": "62"
+    },
+    {
+        "raw_code": "def verify(package, url, verbose: false)\n      ensure_vendor_directory_exists\n\n      unless vendored_package_path(package).file?\n        raise ImportmapHelper::VerifyError, \"Pinned #{package}#{extract_package_version_from(url)} does not exist in vendor/javascript\"\n      end",
+        "comment": "Copied from https://github.com/rails/importmap-rails/pull/237",
+        "label": "What",
+        "id": "63"
+    },
+    {
+        "raw_code": "def assert_equal_hash(expected, actual, context = \"expected\")\n    assert_equal deep_sort_hashes(expected), deep_sort_hashes(actual), \"Expected equal elements in #{context}\"\n  end",
+        "comment": "Hashes with different orders will still be equal according to assert_equal. However, when they are not equal, the output diff will print them in their original order which makes it hard to see what is actually different.  Improve diff output by sorting any nested hashes within enumerables, leaving array order untouched.",
+        "label": "Others",
+        "id": "64"
+    },
+    {
+        "raw_code": "def deep_sort_hashes(obj)\n    if obj.is_a?(Hash)\n      obj.map do |k, v|\n        [k, deep_sort_hashes(v)]\n      end.sort!.to_h\n    elsif obj.respond_to?(:map)\n      obj.map { |v| deep_sort_hashes(v) }\n    else\n      obj\n    end",
+        "comment": "sort the hash keys and recursively sort nested hashes within enumberables",
+        "label": "Others",
+        "id": "65"
+    },
+    {
+        "raw_code": "def default(content = \"Example content\", style: :notice, closeable: false)\n    render AlertComponent.new(style:, closeable:) do\n      content\n    end",
+        "comment": "@param content text \"content\" @param style select \"style\", { choices: [notice, alert, error, success, primary, neutral] } @param closeable toggle \"closeable\"",
+        "label": "What",
+        "id": "66"
+    },
+    {
+        "raw_code": "def default(text: \"Button\", url: \"\", type: :button, color: :primary, size: :large, style: :fill, disabled: false) # rubocop:disable Metrics/ParameterLists\n    args = [text, url].compact_blank\n    render ButtonComponent.new(\n      *args,\n      type: type,\n      color: color,\n      size: size,\n      style: style,\n      disabled: disabled\n    )\n  end",
+        "comment": "@param text text \"text\" @param url url \"link\" @param type select \"type\", { choices: [button, link, submit] } @param color select \"color\", { choices: [primary, secondary, red, orange, hammy, yellow, green, blue, neutral] } @param size select \"size\", { choices: [small, large] } @param style select \"style\", { choices: [fill, outline, plain] } @param disabled toggle \"disabled\"",
+        "label": "What",
+        "id": "67"
+    },
+    {
+        "raw_code": "def outline(text: \"Button\", url: \"\", type: :button, color: :primary, size: :large, style: :outline, disabled: false) # rubocop:disable Metrics/ParameterLists\n    args = [text, url].compact_blank\n    render ButtonComponent.new(\n      *args,\n      type: type,\n      color: color,\n      size: size,\n      style: style,\n      disabled: disabled\n    )\n  end",
+        "comment": "@param text text \"text\" @param url url \"link\" @param type select \"type\", { choices: [button, link, submit] } @param color select \"color\", { choices: [primary, secondary, red, orange, hammy, yellow, green, blue, neutral] } @param size select \"size\", { choices: [small, large] } @param style select \"style\", { choices: [fill, outline, plain] } @param disabled toggle \"disabled\"",
+        "label": "What",
+        "id": "68"
+    },
+    {
+        "raw_code": "def plain(text: \"Button\", url: \"\", type: :button, color: :primary, size: :large, style: :plain, disabled: false) # rubocop:disable Metrics/ParameterLists\n    args = [text, url].compact_blank\n    render ButtonComponent.new(\n      *args,\n      type: type,\n      color: color,\n      size: size,\n      style: style,\n      disabled: disabled\n    )\n  end",
+        "comment": "@param text text \"text\" @param url url \"link\" @param type select \"type\", { choices: [button, link, submit] } @param color select \"color\", { choices: [primary, secondary, red, orange, hammy, yellow, green, blue, neutral] } @param size select \"size\", { choices: [small, large] } @param style select \"style\", { choices: [fill, outline, plain] } @param disabled toggle \"disabled\"",
+        "label": "What",
+        "id": "69"
+    },
+    {
+        "raw_code": "def default(title: \"Gems\", icon: \"gems\", count: nil, url: nil)\n    render CardComponent.new do |c|\n      c.head(title, icon: icon, count: count, url: url)\n      c.list do\n        c.list_item { \"list > list_item\" }\n      end",
+        "comment": "@param title text \"Card title\" @param icon text \"icon name\" @param count number \"count (blank for no count)\" @param url url \"view all link (blank for no link)\"",
+        "label": "What",
+        "id": "70"
+    },
+    {
+        "raw_code": "def default(datetime: 1.day.ago, user_link: nil, content: nil)\n    block = proc { content } if content\n\n    render CardComponent.new do |c|\n      c.head(\"Timeline\", icon: \"history\")\n      c.scrollable do\n        render Card::TimelineComponent.new do |t|\n          t.timeline_item(datetime, user_link, &block)\n        end",
+        "comment": "@param datetime datetime-local \"datetime\" @param user_link url \"user link\" @param content text \"content\"",
+        "label": "What",
+        "id": "71"
+    },
+    {
+        "raw_code": "def default(owner: \"Owner\", authorizer: \"Authorizer\", user: User.first!)\n    event = FactoryBot.build(:events_rubygem_event, tag: Events::RubygemEvent::OWNER_ADDED, additional:\n    {\n      owner:,\n      owner_gid: user.to_gid.to_s,\n      authorizer:,\n      actor_gid: user.to_gid.to_s\n    })\n    render Events::RubygemEvent::Owner::AddedComponent.new(event:)\n  end",
+        "comment": "@param owner text @param authorizer text",
+        "label": "Property",
+        "id": "72"
+    },
+    {
+        "raw_code": "def without_actor(owner: \"Owner\", authorizer: \"Authorizer\", user: User.first!)\n    event = FactoryBot.build(:events_rubygem_event,\n    tag: Events::RubygemEvent::OWNER_ADDED,\n    additional:\n    {\n      owner:,\n      owner_gid: user.to_gid.to_s,\n      authorizer:\n    })\n    render Events::RubygemEvent::Owner::AddedComponent.new(event:)\n  end",
+        "comment": "@param owner text @param authorizer text",
+        "label": "Property",
+        "id": "73"
+    },
+    {
+        "raw_code": "def without_authorizer(owner: \"Owner\", user: User.first!)\n    event = FactoryBot.build(:events_rubygem_event, tag: Events::RubygemEvent::OWNER_ADDED, additional:\n    {\n      owner:,\n      owner_gid: user.to_gid.to_s,\n      actor_gid: user.to_gid.to_s\n    })\n    render Events::RubygemEvent::Owner::AddedComponent.new(event:)\n  end",
+        "comment": "@param owner text",
+        "label": "Property",
+        "id": "74"
+    },
+    {
+        "raw_code": "def default(owner: \"Owner\", user: User.first!)\n    event = FactoryBot.build(:events_rubygem_event, tag: Events::RubygemEvent::OWNER_CONFIRMED, additional:\n    {\n      owner:,\n      owner_gid: user.to_gid.to_s,\n      actor_gid: user.to_gid.to_s\n    })\n    render Events::RubygemEvent::Owner::ConfirmedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param owner text",
+        "label": "Property",
+        "id": "75"
+    },
+    {
+        "raw_code": "def default(owner: \"Owner\", user: User.first!)\n    event = FactoryBot.build(:events_rubygem_event, tag: Events::RubygemEvent::OWNER_REMOVED, additional:\n    {\n      owner:,\n      owner_gid: user.to_gid.to_s,\n      actor_gid: user.to_gid.to_s\n    })\n    render Events::RubygemEvent::Owner::RemovedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param owner text",
+        "label": "Property",
+        "id": "76"
+    },
+    {
+        "raw_code": "def default(rubygem: Rubygem.first!, number: \"1.0.0\", platform: \"ruby\", version_gid: rubygem.versions.where(number:, platform:).first&.to_gid)\n    event = FactoryBot.build(:events_rubygem_event, rubygem:, tag: Events::RubygemEvent::VERSION_UNYANKED, additional:\n    {\n      number:,\n      platform:,\n\n      version_gid:\n    })\n    render Events::RubygemEvent::Version::UnyankedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param number text @param platform text",
+        "label": "Others",
+        "id": "77"
+    },
+    {
+        "raw_code": "def default(name: \"example\", scopes: [\"push\"], mfa: false, gem: nil)\n    event = FactoryBot.build(:events_user_event, tag: Events::UserEvent::API_KEY_CREATED, additional:\n    {\n      name:,\n      scopes:,\n      mfa:,\n      gem: gem.presence\n    })\n    render Events::UserEvent::ApiKey::CreatedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param name text @param scopes [Array<String>] @param mfa toggle @param gem text",
+        "label": "What",
+        "id": "78"
+    },
+    {
+        "raw_code": "def default(name: \"example\")\n    event = FactoryBot.build(:events_user_event, tag: Events::UserEvent::API_KEY_DELETED, additional:\n    {\n      name:\n    })\n    render Events::UserEvent::ApiKey::DeletedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param name text",
+        "label": "What",
+        "id": "79"
+    },
+    {
+        "raw_code": "def default(email: \"user@example.com\")\n    event = FactoryBot.build(:events_user_event, tag: Events::UserEvent::EMAIL_ADDED, additional:\n    {\n      email:\n    })\n    render Events::UserEvent::Email::AddedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param email email",
+        "label": "What",
+        "id": "80"
+    },
+    {
+        "raw_code": "def default(subject: \"[Subject]\", from: \"example@rubygems.org\", to: \"user@example.com\")\n    event = FactoryBot.build(:events_user_event, tag: Events::UserEvent::EMAIL_SENT, additional:\n    {\n      subject:,\n      from:,\n      to:\n    })\n    render Events::UserEvent::Email::SentComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param subject text @param from email @param to email",
+        "label": "What",
+        "id": "81"
+    },
+    {
+        "raw_code": "def default(email: \"user@example.com\")\n    event = FactoryBot.build(:events_user_event, tag: Events::UserEvent::EMAIL_VERIFIED, additional:\n    {\n      email:\n    })\n    render Events::UserEvent::Email::VerifiedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param email email",
+        "label": "What",
+        "id": "82"
+    },
+    {
+        "raw_code": "def default(email: \"user@example.com\")\n    event = FactoryBot.build(:events_user_event, tag: Events::UserEvent::CREATED, additional:\n    {\n      email:\n    })\n    render Events::UserEvent::User::CreatedComponent.new(\n      event:\n    )\n  end",
+        "comment": "@param email email",
+        "label": "What",
+        "id": "83"
+    },
+    {
+        "raw_code": "def default(key: \"key\", value: \"value\")\n    pairs = {\n      \"sub\" => \"1234567890\",\n      \"name\" => \"John Doe\",\n      \"given_name\" => \"John\",\n      \"family_name\" => \"Doe\",\n      \"preferred_username\" => \"johndoe\",\n      key => value\n    }\n    render OIDC::IdToken::KeyValuePairsComponent.new(pairs:)\n  end",
+        "comment": "@param key text @param value text",
+        "label": "Property",
+        "id": "84"
+    },
+    {
+        "raw_code": "def default(factory: :oidc_rubygem_trusted_publisher, environment: nil, repository_name: \"rubygem2\", workflow_filename: \"push_gem.yml\")\n    github_action = FactoryBot.build(:oidc_trusted_publisher_github_action, environment:, repository_name:, workflow_filename:)\n    trusted_publisher = FactoryBot.build(factory, trusted_publisher: github_action)\n    render Wrapper.new(form_object: trusted_publisher)\n  end",
+        "comment": "@param factory select \"factory for the containing trusted publisher\" { choices: [oidc_rubygem_trusted_publisher, oidc_pending_trusted_publisher] }",
+        "label": "What",
+        "id": "85"
+    },
+    {
+        "raw_code": "def default(environment: nil, repository_name: nil, workflow_filename: nil)\n    github_action = FactoryBot.build(:oidc_trusted_publisher_github_action, **{ environment:, repository_name:, workflow_filename: }.compact)\n    render OIDC::TrustedPublisher::GitHubAction::TableComponent.new(github_action:)\n  end",
+        "comment": "@param environment text The environment for the GitHub Action",
+        "label": "Property",
+        "id": "86"
+    }
+]
