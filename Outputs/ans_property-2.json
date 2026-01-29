@@ -1,0 +1,37 @@
+[
+  {
+    "id": "785",
+    "raw_code": "def form(record_name, options = {})\n        record = instance_variable_get(\"@#{record_name}\")\n        record = convert_to_model(record)\n\n        options = options.symbolize_keys\n        options[:action] ||= record.persisted? ? \"update\" : \"create\"\n        action = url_for(:action => options[:action], :id => record)\n\n        submit_value = options[:submit_value] || options[:action].gsub(/[^\\w]/, '').capitalize\n\n        contents = form_tag({:action => action}, :method =>(options[:method] || 'post'), :enctype => options[:multipart] ? 'multipart/form-data': nil)\n        contents.safe_concat hidden_field(record_name, :id) if record.persisted?\n        contents.safe_concat all_input_tags(record, record_name, options)\n        yield contents if block_given?\n        contents.safe_concat submit_tag(submit_value)\n        contents.safe_concat('</form>')\n      end",
+    "generated_comment": "# Form method that creates or updates a model instance based on its name and optional options\n# Uses the @record variable as a reference to the model object\n# Accepts a POST request with a JSON payload containing the form data",
+    "gold_comment": "Returns an entire form with all needed input tags for a specified Active Record object. For example, if <tt>@post</tt> has attributes named +title+ of type +VARCHAR+ and +body+ of type +TEXT+ then  form(\"post\")  would yield a form like the following (modulus formatting):  <form action='/posts/create' method='post'> <p> <label for=\"post_title\">Title</label><br /> <input id=\"post_title\" name=\"post[title]\" size=\"30\" type=\"text\" value=\"Hello World\" /> </p> <p> <label for=\"post_body\">Body</label><br /> <textarea cols=\"40\" id=\"post_body\" name=\"post[body]\" rows=\"20\"></textarea> </p> <input name=\"commit\" type=\"submit\" value=\"Create\" /> </form>  It's possible to specialize the form builder by using a different action name and by supplying another block renderer. For example, if <tt>@entry</tt> has an attribute +message+ of type +VARCHAR+ then  form(\"entry\", :action => \"sign\", :input_block => Proc.new { |record, column| \"#{column.human_name}: #{input(record, column.name)}<br />\" })  would yield a form like the following (modulus formatting):  <form action=\"/entries/sign\" method=\"post\"> Message: <input id=\"entry_message\" name=\"entry[message]\" size=\"30\" type=\"text\" /><br /> <input name=\"commit\" type=\"submit\" value=\"Sign\" /> </form>  It's also possible to add additional content to the form by giving it a block, such as:  form(\"entry\", :action => \"sign\") do |form| form << content_tag(\"b\", \"Department\") form << collection_select(\"department\", \"id\", @departments, \"id\", \"name\") end  The following options are available:  * <tt>:action</tt> - The action used when submitting the form (default: +create+ if a new record, otherwise +update+). * <tt>:input_block</tt> - Specialize the output using a different block, see above. * <tt>:method</tt> - The method used when submitting the form (default: +post+). * <tt>:multipart</tt> - Whether to change the enctype of the form to \"multipart/form-data\", used when uploading a file (default: +false+). * <tt>:submit_value</tt> - The text of the submit button (default: \"Create\" if a new record, otherwise \"Update\").",
+    "label": "property"
+  },
+  {
+    "id": "170",
+    "raw_code": "def update_assignment(attributes)\n    unless @assignment.update_attributes(attributes)\n      @errors = @assignment.errors.to_s\n      @has_errors = true\n    end",
+    "generated_comment": "# Updates the assignment object's attributes using the given array of attributes\n# If there are any errors during the update process, they will be stored in the @errors attribute\n# The @has_errors flag will be set to true if there were any errors",
+    "gold_comment": "Code to update values of assignment",
+    "label": "property"
+  },
+  {
+    "id": "659",
+    "raw_code": "def get_team_reviewed_link_name(max_team_size, _response, reviewee_id, ip_address)\n    team_reviewed_link_name = if max_team_size == 1\n                                TeamsUser.where(team_id: reviewee_id).first.user.fullname(ip_address)\n                              else\n                                # E1991 : check anonymized view here\n                                Team.find(reviewee_id).name\n                              end",
+    "generated_comment": "# Returns the name of the team member that has reviewed the given reviewee's work,\n# based on the maximum number of members allowed in the team (max_team_size),\n# the response object returned by the API call, the reviewee's ID, and their IP address.",
+    "gold_comment": "For assignments with 1 team member, the following method returns user's fullname else it returns \"team name\" that a particular reviewee belongs to.",
+    "label": "property"
+  },
+  {
+    "id": "62",
+    "raw_code": "def self.post_similarity_nxn(comparison_id, callback_url = '')\n    full_url = @@base_uri + '/similarity_nxn/' + comparison_id\n    json_body = callback_url.empty? ? {}.to_json : { 'callback_url' => callback_url }.to_json\n    RestClient::Request.execute(method: :post,\n                                url: full_url,\n                                payload: json_body,\n                                headers:\n                                    {\n                                      simicheck_api_key: @@api_key,\n                                      content_type: :json,\n                                      accept: :json\n                                    },\n                                verify_ssl: false)\n  end",
+    "generated_comment": "# Calls the REST API endpoint /similarity_nxn/<comparison_id> to calculate similarity between two nodes in the network.\n# The response contains a JSON object with the following fields:\n#   -'similarity': A float representing the similarity score between the two nodes.",
+    "gold_comment": "Starts the computation of file similarity for a comparison Parameters: comparison_id - string id of the comparison to update Returns: response = RestClient::Response",
+    "label": "property"
+  },
+  {
+    "id": "101",
+    "raw_code": "def num_reviews_greater?(reviews_required, reviews_allowed)\n    reviews_allowed && reviews_allowed != -1 && reviews_required > reviews_allowed\n  end",
+    "generated_comment": "# Returns true if the number of allowed reviews exceeds the required ones\n# Assumes reviews_required and reviews_allowed are non-negative integers",
+    "gold_comment": "returns true if reviews required is greater than reviews allowed",
+    "label": "property"
+  }
+]

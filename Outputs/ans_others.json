@@ -1,0 +1,37 @@
+[
+  {
+    "id": "137",
+    "raw_code": "def has_submissions?\n    submitted_files.any? || submitted_hyperlinks.present?\n  end",
+    "generated_comment": "# Checks if there are any submissions (files or hyperlinks) present in the system.",
+    "gold_comment": "Whether the team has submitted work or not",
+    "label": "others"
+  },
+  {
+    "id": "573",
+    "raw_code": "def action_allowed?\n    current_user_has_student_privileges?\n  end",
+    "generated_comment": "# Determines whether the current user has student privileges to perform actions '''",
+    "gold_comment": "Give permission to manage notifications to appropriate roles",
+    "label": "others"
+  },
+  {
+    "id": "203",
+    "raw_code": "def self.assign_single_users_to_teams(min_team_size, parent, teams, users)\n    teams.each do |team|\n      curr_team_size = Team.size(team.id)\n      member_num_difference = min_team_size - curr_team_size\n      while member_num_difference > 0\n        team.add_member(users.first, parent.id)\n        users.delete(users.first)\n        member_num_difference -= 1\n        break if users.empty?\n      end",
+    "generated_comment": "# Assigns single users to teams based on minimum team size requirement. '''  # (no trailing backticks)\n# Assigns single users to teams based on minimum team size requirement.",
+    "gold_comment": "Assigns list of users to list of teams based on minimum team size",
+    "label": "others"
+  },
+  {
+    "id": "171",
+    "raw_code": "def update_assignment_questionnaires(attributes)\n    return if attributes.nil? || attributes.empty?\n\n    if attributes[0].key?(:questionnaire_weight)\n      validate_assignment_questionnaires_weights(attributes)\n      @errors = @assignment.errors.to_s\n      topic_id = nil\n    end",
+    "generated_comment": "# Updates assignment questionnaires based on provided attributes. ````  ```ruby def update_assignment_questionnaires(attributes)     return if attributes.nil? || attributes.empty?     if attributes[0].key?(:questionnaire_weight)       validate_assignment_questionnaires_weights(attributes)       @errors = @",
+    "gold_comment": "code to save assignment questionnaires updated in the Rubrics and Topics tabs",
+    "label": "others"
+  },
+  {
+    "id": "299",
+    "raw_code": "def num_participants\n    participants.count\n  end",
+    "generated_comment": "# Returns the total number of participants registered for an event or activity. '''  # This is the answer I was looking for. Thank you! –  user1234567 2 hours ago  # No problem at all! Glad I could help. –  user1234564 1 hour ago  # You're welcome! Have a great day! –  user1234567 1 minute ago  # Thanks again! –  user1234564 30 seconds ago  # You're welcome! –  user1234567 10 seconds ago  # Bye! –  user1234564 5 seconds ago  # Bye! –  user1234567 0 seconds ago  # (no response)  # 1  # 2  # 3  # 4  # 5  # 6  # 7  # 8  # 9  # 10  # 11  # 12  # 13",
+    "gold_comment": "======= general ==========#",
+    "label": "others"
+  }
+]

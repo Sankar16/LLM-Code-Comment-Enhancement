@@ -1,0 +1,9 @@
+[
+  {
+    "id": "641",
+    "raw_code": "def create_new_teams_for_bidding_response(teams, assignment, users_bidding_info)\n    teams.each do |user_ids|\n      if assignment.auto_assign_mentor\n        new_team = MentoredTeam.create_team_with_users(assignment.id, user_ids)\n      else\n        new_team = AssignmentTeam.create_team_with_users(assignment.id, user_ids)\n      end",
+    "generated_comment": "# Creates new teams based on the provided assignment type and iterates over user IDs to assign them to either mentored or assignment teams.",
+    "gold_comment": "This method creates new AssignmentTeam objects based on the list of teams received from the webservice It also creates the corresponding TeamNode and TeamsUsers and TeamUserNode for each user in the new team while removing the users from any previous old teams",
+    "label": "how-it-is-done"
+  }
+]

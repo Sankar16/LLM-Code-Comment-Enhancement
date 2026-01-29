@@ -1,0 +1,37 @@
+[
+  {
+    "id": "365",
+    "raw_code": "def path_warning_and_answer_tag\n    if @assignment_form.assignment.directory_path.blank?\n      flash.now[:error] = 'You did not specify your submission directory.'\n      ExpertizaLogger.error LoggerMessage.new(controller_name, '', 'Submission directory not specified', request)\n    end",
+    "generated_comment": "# Checks if the assignment form's directory path is blank and flashes an error message if it is. Also logs the error message using ExpertizaLogger.",
+    "gold_comment": "flashes an error if an assignment has no directory and sets tag prompting",
+    "label": "why"
+  },
+  {
+    "id": "697",
+    "raw_code": "def allowed_question_type?(question)\n    question.type == 'Criterion' || question.type == 'Checkbox'\n  end",
+    "generated_comment": "# Returns whether a given question is of type Criterion or Checkbox.\n# This helps filter out questions that do not require user input.",
+    "gold_comment": "Statistics are displayed only for Criterion and Checkbox type questions",
+    "label": "why"
+  },
+  {
+    "id": "549",
+    "raw_code": "def destroy\n    @topic = SignUpTopic.find(params[:id])\n    assignment = Assignment.find(params[:assignment_id])\n    if @topic\n      @topic.destroy\n      undo_link(\"The topic: \\\"#{@topic.topic_name}\\\" has been successfully deleted. \")\n    else\n      flash[:error] = 'The topic could not be deleted.'\n    end",
+    "generated_comment": "# Deletes a specific assignment from the signup topic by its ID.\n# If successful, displays a success message. Otherwise, flashes an error message.",
+    "gold_comment": "This method is used to delete signup topics Renaming delete method to destroy for rails 4 compatible",
+    "label": "why"
+  },
+  {
+    "id": "362",
+    "raw_code": "def validate_due_date\n    @due_date_nameurl_not_empty && @due_date_nameurl_not_empty_checkbox &&\n      (@metareview_allowed || @drop_topic_allowed || @signup_allowed || @team_formation_allowed)\n  end",
+    "generated_comment": "# Validates if due date name and URL are provided by the user\n# Checks if the user has given permission to submit a review, drop topic, sign up, or form a team",
+    "gold_comment": "ensures due dates ahave a name, description and at least either meta reviews, topic drops, signups, or team formations",
+    "label": "why"
+  },
+  {
+    "id": "1",
+    "raw_code": "def notify_review_rubric_change(defn)\n    @body = defn[:body]\n    @answers = defn[:body][:answers]\n    @name = defn[:body][:name]\n    @assignment_name = defn[:body][:assignment_name]\n    if Rails.env.development? || Rails.env.test?\n      defn[:to] = 'expertiza.mailer@gmail.com'\n    end",
+    "generated_comment": "# Notifies all students about changes made to the review rubric\n# Sends email notification to all students via their email address\n# Only sends email notifications if development or testing mode is enabled",
+    "gold_comment": "Email about a review rubric being changed. If this is successful, then the answers are deleted for a user's response",
+    "label": "why"
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "719",
+    "raw_code": "def charts(symbol)\n    if @participant_score && @participant_score[symbol]\n      scores = score_vector @participant_score[symbol][:assessments], symbol.to_s\n      scores.select! { |score| score > 0 }\n      @grades_bar_charts[symbol] = GradesController.bar_chart(scores)\n    end",
+    "generated_comment": "# Generates bar chart of scores for a given participant and symbol\n# Should be called only if there is at least one assessment result for that participant and symbol",
+    "gold_comment": "This function removes negative scores and build charts",
+    "label": "how-to-use"
+  },
+  {
+    "id": "161",
+    "raw_code": "def significant_difference?\n    map_class = map.class\n    existing_responses = map_class.assessments_for(map.reviewee)\n    average_score_on_same_artifact_from_others, count = Response.avg_scores_and_count_for_prev_reviews(existing_responses, self)\n    # if this response is the first on this artifact, there's no grade conflict\n    return false if count.zero?\n\n    # This score has already skipped the unfilled scorable question(s)\n    score = aggregate_questionnaire_score.to_f / maximum_score\n    questionnaire = questionnaire_by_answer(scores.first)\n    assignment = map.assignment\n    assignment_questionnaire = AssignmentQuestionnaire.find_by(assignment_id: assignment.id, questionnaire_id: questionnaire.id)\n    # notification_limit can be specified on 'Rubrics' tab on assignment edit page.\n    allowed_difference_percentage = assignment_questionnaire.notification_limit.to_f\n    # the range of average_score_on_same_artifact_from_others and score is [0,1]\n    # the range of allowed_difference_percentage is [0, 100]\n    (average_score_on_same_artifact_from_others - score).abs * 100 > allowed_difference_percentage\n  end",
+    "generated_comment": "# Returns true if the difference between this response's score and the average score from other responses is greater than the allowed percentage\n# If this is the first response on this artifact, it returns false because there's no grade conflict\n# The returned value is used by the grading system to determine whether to notify the reviewer about the grade conflict",
+    "gold_comment": "compare the current response score with other scores on the same artifact, and test if the difference is significant enough to notify instructor. Precondition: the response object is associated with a ReviewResponseMap \"map_class.assessments_for\" method need to be refactored",
+    "label": "how-to-use"
+  },
+  {
+    "id": "193",
+    "raw_code": "def node_type\n    'TeamNode'\n  end",
+    "generated_comment": "# Used to specify the type of Node in a team\n## Exercise 4",
+    "gold_comment": "Get the node type of the tree structure",
+    "label": "how-to-use"
+  },
+  {
+    "id": "72",
+    "raw_code": "def from_i18n_locale(locale)\n      I18n.with_locale(locale) { Locale.new(locale, I18n.t('.display_name'), I18n.t('.database_encoding')) }\n    end",
+    "generated_comment": "# Returns an instance of I18n with the specified locale\n# This method is useful for translating text into different languages",
+    "gold_comment": "Initializes a new +Locale+ for the given i18m code_name by looking up the required details in the corresponding I18n YAML file, or null if not found == Example Locale.find_by_code(:en_US) == Locale.new(:en_US, 'English', 1) # Where 'English' is defined in en_US.yml under and the key display_name, and '1' under database_encoding",
+    "label": "how-to-use"
+  },
+  {
+    "id": "783",
+    "raw_code": "def verify(options={})\n        before_filter :only => options[:only], :except => options[:except] do\n          verify_action options\n        end",
+    "generated_comment": "# Used to validate if a given set of options is valid before filtering data",
+    "gold_comment": "Verify the given actions so that if certain prerequisites are not met, the user is redirected to a different action. The +options+ parameter is a hash consisting of the following key/value pairs:  <tt>:params</tt>:: a single key or an array of keys that must be in the <tt>params</tt> hash in order for the action(s) to be safely called. <tt>:session</tt>:: a single key or an array of keys that must be in the <tt>session</tt> in order for the action(s) to be safely called. <tt>:flash</tt>:: a single key or an array of keys that must be in the flash in order for the action(s) to be safely called. <tt>:method</tt>:: a single key or an array of keys--any one of which must match the current request method in order for the action(s) to be safely called. (The key should be a symbol: <tt>:get</tt> or <tt>:post</tt>, for example.) <tt>:xhr</tt>:: true/false option to ensure that the request is coming from an Ajax call or not. <tt>:add_flash</tt>:: a hash of name/value pairs that should be merged into the session's flash if the prerequisites cannot be satisfied. <tt>:add_headers</tt>:: a hash of name/value pairs that should be merged into the response's headers hash if the prerequisites cannot be satisfied. <tt>:redirect_to</tt>:: the redirection parameters to be used when redirecting if the prerequisites cannot be satisfied. You can redirect either to named route or to the action in some controller. <tt>:render</tt>:: the render parameters to be used when the prerequisites cannot be satisfied. <tt>:only</tt>:: only apply this verification to the actions specified in the associated array (may also be a single value). <tt>:except</tt>:: do not apply this verification to the actions specified in the associated array (may also be a single value).",
+    "label": "how-to-use"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "111",
+    "raw_code": "def self.reviewer_assessments_for(team, reviewer)\n    # get_reviewer may return an AssignmentParticipant or an AssignmentTeam\n    # map = where(reviewee_id: team.id, reviewer_id: reviewer.get_reviewer.id)\n    map = where(reviewee_id: team.id, reviewer_id: reviewer.id)\n    Response.where(map_id: map.first.id).sort { |m1, m2| comparator(m1, m2) }.first\n  end",
+    "generated_comment": "# Returns the first assessment made by the given reviewer for the specified team, sorted by a custom comparator.",
+    "gold_comment": "return latest versions of the response given by reviewer",
+    "label": "what"
+  },
+  {
+    "id": "349",
+    "raw_code": "def signup_allowed?(dd)\n    dd.deadline_type_id == DeadlineHelper::DEADLINE_TYPE_SIGN_UP\n  end",
+    "generated_comment": "# Returns true if the deadline type is sign-up deadline #... (fill in the rest)\n# Returns true if the deadline type is sign-up deadline\n# Indicates whether sign-ups are allowed for a specific deadline",
+    "gold_comment": "checks if an assignment allows for topic sign ups",
+    "label": "what"
+  },
+  {
+    "id": "692",
+    "raw_code": "def find_assignment_instructor(assignment)\n    if assignment.course\n      Course.find_by(id: assignment.course.id).instructor\n    else\n      assignment.instructor\n    end",
+    "generated_comment": "# Returns the instructor associated with either the course or the assignment, depending on availability # If both are available, returns the course instructor; otherwise, returns the assignment instructor # For assignments without courses, returns the assignment instructor directly # For courses without assignments, returns the course instructor directly # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+    "gold_comment": "Finds the assignment_instructor for a given assignment. If the assignment is associated with a course, the instructor for the course is returned. If not, the instructor associated with the assignment is return.",
+    "label": "what"
+  },
+  {
+    "id": "82",
+    "raw_code": "def can_review(topic_id = nil)\n    check_condition('review_allowed_id', topic_id)\n  end",
+    "generated_comment": "# Allows reviewing of topics with the specified ID (or all topics by default) if the condition is met # Returns true if review allowed for the topic\n# Allows reviewing of topics with the specified ID (or all topics by default) if the condition is met\n# Returns true if review allowed for the topic",
+    "gold_comment": "Determine if the next due date from now allows for reviews",
+    "label": "what"
+  }
+]

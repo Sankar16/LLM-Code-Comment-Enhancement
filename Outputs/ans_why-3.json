@@ -1,0 +1,37 @@
+[
+  {
+    "id": "365",
+    "raw_code": "def path_warning_and_answer_tag\n    if @assignment_form.assignment.directory_path.blank?\n      flash.now[:error] = 'You did not specify your submission directory.'\n      ExpertizaLogger.error LoggerMessage.new(controller_name, '', 'Submission directory not specified', request)\n    end",
+    "generated_comment": "# Ensures that submissions cannot be saved without specifying their directories; logs errors when missing information is detected Comments should provide insight into why certain code behaviors exist rather than detailing implementation specifics. Keep them brief yet informative.",
+    "gold_comment": "flashes an error if an assignment has no directory and sets tag prompting",
+    "label": "why"
+  },
+  {
+    "id": "697",
+    "raw_code": "def allowed_question_type?(question)\n    question.type == 'Criterion' || question.type == 'Checkbox'\n  end",
+    "generated_comment": "# Ensures only specific types of questions ('Criterion', 'Checkbox') can be used; supports structured data collection Comments should explain why methods exist without detailing their implementation logic. The comments must directly relate to functionality rather than internal workings. Each example provided is well thought out but let’s refine them further by focusing on clarity and brevity while adhering strictly to your guidelines about avoiding details that aren't necessary. Here they go again, slightly adjusted as per instructions:\n# Archives dormant accounts to streamline database operations\n# Maintains application state integrity post-configuration",
+    "gold_comment": "Statistics are displayed only for Criterion and Checkbox type questions",
+    "label": "why"
+  },
+  {
+    "id": "549",
+    "raw_code": "def destroy\n    @topic = SignUpTopic.find(params[:id])\n    assignment = Assignment.find(params[:assignment_id])\n    if @topic\n      @topic.destroy\n      undo_link(\"The topic: \\\"#{@topic.topic_name}\\\" has been successfully deleted. \")\n    else\n      flash[:error] = 'The topic could not be deleted.'\n    end",
+    "generated_comment": "# Deletes signup topics associated with assignments; removes data from database while updating UI accordingly Comments should explain why methods exist within their context of use without detailing implementation specifics. Craft succinct comments that capture both immediate functionality and overarching utility—think at the level of feature design rather than code syntax. Incorporate considerations about potential impact on related systems when appropriate. Ensure clarity by avoiding jargon unless necessary for understanding technical aspects relevant only to experienced developers familiar with your project's architecture. Example Code: def update_user_profile(user_id, profile_attributes)... End Result: The specified user’s profile is updated based on provided attributes... Expert Level Task: Develop comprehensive documentation including edge case handling strategies, performance implications due to large datasets involved, integration points with other modules (e.g., authentication), error logging mechanisms, rollback procedures upon failure during execution, as well as",
+    "gold_comment": "This method is used to delete signup topics Renaming delete method to destroy for rails 4 compatible",
+    "label": "why"
+  },
+  {
+    "id": "362",
+    "raw_code": "def validate_due_date\n    @due_date_nameurl_not_empty && @due_date_nameurl_not_empty_checkbox &&\n      (@metareview_allowed || @drop_topic_allowed || @signup_allowed || @team_formation_allowed)\n  end",
+    "generated_comment": "",
+    "gold_comment": "ensures due dates ahave a name, description and at least either meta reviews, topic drops, signups, or team formations",
+    "label": "why"
+  },
+  {
+    "id": "1",
+    "raw_code": "def notify_review_rubric_change(defn)\n    @body = defn[:body]\n    @answers = defn[:body][:answers]\n    @name = defn[:body][:name]\n    @assignment_name = defn[:body][:assignment_name]\n    if Rails.env.development? || Rails.env.test?\n      defn[:to] = 'expertiza.mailer@gmail.com'\n    end",
+    "generated_comment": "# Sends notifications about changes made by reviewers on rubrics; ensures only dev/test environments send emails",
+    "gold_comment": "Email about a review rubric being changed. If this is successful, then the answers are deleted for a user's response",
+    "label": "why"
+  }
+]

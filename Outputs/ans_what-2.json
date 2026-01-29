@@ -1,0 +1,37 @@
+[
+  {
+    "id": "111",
+    "raw_code": "def self.reviewer_assessments_for(team, reviewer)\n    # get_reviewer may return an AssignmentParticipant or an AssignmentTeam\n    # map = where(reviewee_id: team.id, reviewer_id: reviewer.get_reviewer.id)\n    map = where(reviewee_id: team.id, reviewer_id: reviewer.id)\n    Response.where(map_id: map.first.id).sort { |m1, m2| comparator(m1, m2) }.first\n  end",
+    "generated_comment": "# Returns the list of assignments assigned by the specified reviewer to the specified team members in descending order based on their scores.",
+    "gold_comment": "return latest versions of the response given by reviewer",
+    "label": "what"
+  },
+  {
+    "id": "349",
+    "raw_code": "def signup_allowed?(dd)\n    dd.deadline_type_id == DeadlineHelper::DEADLINE_TYPE_SIGN_UP\n  end",
+    "generated_comment": "# Checks if the deadline type id of the given DD is equal to DeadlineHelper::DEADLINE_TYPE_SIGN_UP\n# Returns true if the deadline type id matches, indicating that signing up is allowed",
+    "gold_comment": "checks if an assignment allows for topic sign ups",
+    "label": "what"
+  },
+  {
+    "id": "692",
+    "raw_code": "def find_assignment_instructor(assignment)\n    if assignment.course\n      Course.find_by(id: assignment.course.id).instructor\n    else\n      assignment.instructor\n    end",
+    "generated_comment": "# Finds the instructor of the given assignment by searching through the Course model. If no course is found, returns the assignment's own instructor.",
+    "gold_comment": "Finds the assignment_instructor for a given assignment. If the assignment is associated with a course, the instructor for the course is returned. If not, the instructor associated with the assignment is return.",
+    "label": "what"
+  },
+  {
+    "id": "82",
+    "raw_code": "def can_review(topic_id = nil)\n    check_condition('review_allowed_id', topic_id)\n  end",
+    "generated_comment": "# Checks if the user is allowed to review topics based on their role\n# If no topic ID is specified, checks if the user is already assigned to any topic",
+    "gold_comment": "Determine if the next due date from now allows for reviews",
+    "label": "what"
+  },
+  {
+    "id": "393",
+    "raw_code": "def authenticate_and_login_user(username)\n    begin\n      # Gets the user if they exist in Expertiza, else null\n      user = User.find_by(name: username)\n      if user\n        # Log the user in\n        session[:user] = user  # Store the entire user object, not just the username\n        AuthController.set_current_role(user.role_id, session)\n        ExpertizaLogger.info LoggerMessage.new('', user.name, 'Login successful via LTI')\n        redirect_to \"#{ENV['EXPERTIZA_BASE_URL']}/student_task/list\", notice: 'Logged in successfully via LTI'\n      else\n        redirect_to root_path, alert: 'User not found in Expertiza. Please register first.'\n      end",
+    "generated_comment": "# Authenticates the user by checking their credentials against the Expertiza database. If the user is authenticated, logs them into the system and redirects them to the appropriate page. If the user is not authenticated, redirects them back to the login page.",
+    "gold_comment": "Logs user in if they exist in Expertiza",
+    "label": "what"
+  }
+]

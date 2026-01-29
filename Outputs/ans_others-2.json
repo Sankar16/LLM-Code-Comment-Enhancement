@@ -1,0 +1,37 @@
+[
+  {
+    "id": "137",
+    "raw_code": "def has_submissions?\n    submitted_files.any? || submitted_hyperlinks.present?\n  end",
+    "generated_comment": "# Returns true if either submitted_files or submitted_hyperlinks is not empty\n# Used to determine whether there are any new submissions that need to be processed",
+    "gold_comment": "Whether the team has submitted work or not",
+    "label": "others"
+  },
+  {
+    "id": "573",
+    "raw_code": "def action_allowed?\n    current_user_has_student_privileges?\n  end",
+    "generated_comment": "# Returns true if the current user has student privileges, false otherwise\n# Used to determine whether a specific action is allowed for a given user",
+    "gold_comment": "Give permission to manage notifications to appropriate roles",
+    "label": "others"
+  },
+  {
+    "id": "203",
+    "raw_code": "def self.assign_single_users_to_teams(min_team_size, parent, teams, users)\n    teams.each do |team|\n      curr_team_size = Team.size(team.id)\n      member_num_difference = min_team_size - curr_team_size\n      while member_num_difference > 0\n        team.add_member(users.first, parent.id)\n        users.delete(users.first)\n        member_num_difference -= 1\n        break if users.empty?\n      end",
+    "generated_comment": "# Assigns single users to teams based on their availability and team size constraints\n# Returns the updated list of teams after assigning members\n# Uses a while loop to iterate through available users until all teams have reached their minimum size",
+    "gold_comment": "Assigns list of users to list of teams based on minimum team size",
+    "label": "others"
+  },
+  {
+    "id": "171",
+    "raw_code": "def update_assignment_questionnaires(attributes)\n    return if attributes.nil? || attributes.empty?\n\n    if attributes[0].key?(:questionnaire_weight)\n      validate_assignment_questionnaires_weights(attributes)\n      @errors = @assignment.errors.to_s\n      topic_id = nil\n    end",
+    "generated_comment": "# Updates the assignment questionnaires based on the provided attributes.\n# Returns true if the attributes are valid (not empty or null), otherwise false.\n# If the attribute is present, it checks that the weight value is within the allowed range.",
+    "gold_comment": "code to save assignment questionnaires updated in the Rubrics and Topics tabs",
+    "label": "others"
+  },
+  {
+    "id": "299",
+    "raw_code": "def num_participants\n    participants.count\n  end",
+    "generated_comment": "# Returns the number of participants in the current session\n# This is useful for tracking attendance and ensuring that everyone has been accounted for",
+    "gold_comment": "======= general ==========#",
+    "label": "others"
+  }
+]

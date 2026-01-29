@@ -1,0 +1,30 @@
+[
+  {
+    "id": "719",
+    "raw_code": "def charts(symbol)\n    if @participant_score && @participant_score[symbol]\n      scores = score_vector @participant_score[symbol][:assessments], symbol.to_s\n      scores.select! { |score| score > 0 }\n      @grades_bar_charts[symbol] = GradesController.bar_chart(scores)\n    end",
+    "generated_comment": "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+    "gold_comment": "This function removes negative scores and build charts",
+    "label": "how-to-use"
+  },
+  {
+    "id": "193",
+    "raw_code": "def node_type\n    'TeamNode'\n  end",
+    "generated_comment": "# This method returns the type of a node in the application's graph model # It is typically called within the context of a specific node object # The returned value can be used for further processing or display purposes # No input parameters are required or expected.",
+    "gold_comment": "Get the node type of the tree structure",
+    "label": "how-to-use"
+  },
+  {
+    "id": "72",
+    "raw_code": "def from_i18n_locale(locale)\n      I18n.with_locale(locale) { Locale.new(locale, I18n.t('.display_name'), I18n.t('.database_encoding')) }\n    end",
+    "generated_comment": "# This method creates a new locale object based on the given locale string # It is intended for use in setting up locales for internationalization purposes # The input locale string must match a supported locale in the i18n configuration # Returns a Locale object ready for use in your application.",
+    "gold_comment": "Initializes a new +Locale+ for the given i18m code_name by looking up the required details in the corresponding I18n YAML file, or null if not found == Example Locale.find_by_code(:en_US) == Locale.new(:en_US, 'English', 1) # Where 'English' is defined in en_US.yml under and the key display_name, and '1' under database_encoding",
+    "label": "how-to-use"
+  },
+  {
+    "id": "783",
+    "raw_code": "def verify(options={})\n        before_filter :only => options[:only], :except => options[:except] do\n          verify_action options\n        end",
+    "generated_comment": "# # # (your code here)",
+    "gold_comment": "Verify the given actions so that if certain prerequisites are not met, the user is redirected to a different action. The +options+ parameter is a hash consisting of the following key/value pairs:  <tt>:params</tt>:: a single key or an array of keys that must be in the <tt>params</tt> hash in order for the action(s) to be safely called. <tt>:session</tt>:: a single key or an array of keys that must be in the <tt>session</tt> in order for the action(s) to be safely called. <tt>:flash</tt>:: a single key or an array of keys that must be in the flash in order for the action(s) to be safely called. <tt>:method</tt>:: a single key or an array of keys--any one of which must match the current request method in order for the action(s) to be safely called. (The key should be a symbol: <tt>:get</tt> or <tt>:post</tt>, for example.) <tt>:xhr</tt>:: true/false option to ensure that the request is coming from an Ajax call or not. <tt>:add_flash</tt>:: a hash of name/value pairs that should be merged into the session's flash if the prerequisites cannot be satisfied. <tt>:add_headers</tt>:: a hash of name/value pairs that should be merged into the response's headers hash if the prerequisites cannot be satisfied. <tt>:redirect_to</tt>:: the redirection parameters to be used when redirecting if the prerequisites cannot be satisfied. You can redirect either to named route or to the action in some controller. <tt>:render</tt>:: the render parameters to be used when the prerequisites cannot be satisfied. <tt>:only</tt>:: only apply this verification to the actions specified in the associated array (may also be a single value). <tt>:except</tt>:: do not apply this verification to the actions specified in the associated array (may also be a single value).",
+    "label": "how-to-use"
+  }
+]

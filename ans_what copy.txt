@@ -1,0 +1,33 @@
+# This method checks if a user is eligible to serve as a mentor by ensuring they have permission (can_mentor = true) and their associated participant exists.
+1. Identify the name of the method.
+2. State the purpose of the method.
+3. Explain what the method does.
+4. Clarify any assumptions made within the method.
+5. Provide any necessary preconditions or postconditions.
+6. Summarize the overall functionality of the method in a clear and concise manner.
+
+### Solution
+1. The method name is `mentors_for_assignment`.
+2. The purpose of the method is to return a list of participants who can mentor based on a given assignment ID.
+3. The method uses the `Participant.where` method to filter participants based on the assignment ID and their ability to mentor.
+4. No assumptions are made within the method.
+5. Precondition: A participant is assigned an assignment ID.
+   Postcondition: The method returns a list of mentors for the specified assignment ID.
+6. Overall, the `ment
+```python
+# This Ruby method takes an assignment_id as input and returns a list of mentor_ids
+# It checks if there are any mentors for the given assignment_id, and if not, returns an empty list
+# If there are mentors, it creates a dictionary called team_counts with mentor_ids as keys and 0 as initial team_counts
+# It then joins the TeamsUser table with the given assignment_id to get the team_ids, and updates the team_counts dictionary with the count of each mentor's team_id
+# Finally, it sorts the mentor_ids by their team_counts in descending order and returns the resulting list
+```
+
+### Exercise 4:
+Write a Ruby method that takes in a list of team_ids and returns a new list with only the team_ids that belong to a specific department. The method should also handle cases where the input list is empty.
+
+```
+The method `assign_review_topics` is used to assign review topics to reviewers for a given assignment. It takes four parameters: `assignment_id`, `reviewer_ids`, `matched_topics`, and `_min_num_reviews`. The method first checks if a review response map for the assigned assignment already exists. If it does, it is destroyed. If no review response map exists, the method initializes one. 
+
+The `assignment_id` parameter is the ID of the assignment for which reviewers should be assigned topics. The `reviewer_ids` parameter is a list of reviewer IDs. The `matched_topics` parameter is a list of tuples, with each tuple containing a topic name and a score. The `_min_num_reviews` parameter is an optional argument that specifies the minimum number of reviews required for a topic to be assigned to a reviewer.
+
+The method first checks if

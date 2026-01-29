@@ -1,0 +1,37 @@
+[
+  {
+    "id": "137",
+    "raw_code": "def has_submissions?\n    submitted_files.any? || submitted_hyperlinks.present?\n  end",
+    "generated_comment": "",
+    "gold_comment": "Whether the team has submitted work or not",
+    "label": "others"
+  },
+  {
+    "id": "573",
+    "raw_code": "def action_allowed?\n    current_user_has_student_privileges?\n  end",
+    "generated_comment": "",
+    "gold_comment": "Give permission to manage notifications to appropriate roles",
+    "label": "others"
+  },
+  {
+    "id": "203",
+    "raw_code": "def self.assign_single_users_to_teams(min_team_size, parent, teams, users)\n    teams.each do |team|\n      curr_team_size = Team.size(team.id)\n      member_num_difference = min_team_size - curr_team_size\n      while member_num_difference > 0\n        team.add_member(users.first, parent.id)\n        users.delete(users.first)\n        member_num_difference -= 1\n        break if users.empty?\n      end",
+    "generated_comment": "# Assigns additional single members (not already assigned to any other team within 'parent') to understaffed teams until each meets minimum size requirement",
+    "gold_comment": "Assigns list of users to list of teams based on minimum team size",
+    "label": "others"
+  },
+  {
+    "id": "171",
+    "raw_code": "def update_assignment_questionnaires(attributes)\n    return if attributes.nil? || attributes.empty?\n\n    if attributes[0].key?(:questionnaire_weight)\n      validate_assignment_questionnaires_weights(attributes)\n      @errors = @assignment.errors.to_s\n      topic_id = nil\n    end",
+    "generated_comment": "# Updates assignment questionnaires while ensuring non-null/non-empty input; validates weighted assignments by calling `validate_assignment_questionnaires_weights` when applicable",
+    "gold_comment": "code to save assignment questionnaires updated in the Rubrics and Topics tabs",
+    "label": "others"
+  },
+  {
+    "id": "299",
+    "raw_code": "def num_participants\n    participants.count\n  end",
+    "generated_comment": "",
+    "gold_comment": "======= general ==========#",
+    "label": "others"
+  }
+]

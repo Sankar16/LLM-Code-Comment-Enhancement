@@ -1,0 +1,37 @@
+[
+  {
+    "id": "25",
+    "raw_code": "def self.accept_invitation(team_id, inviter_user_id, invited_user_id, assignment_id)\n    # if you are on a team and you accept another invitation and if your old team does not have any members, delete the entry for the team\n    if TeamsUser.team_empty?(team_id) && (team_id != '0')\n      assignment_id = AssignmentTeam.find(team_id).assignment.id\n      # Release topics for the team has selected by the invited users empty team\n      SignedUpTeam.release_topics_selected_by_team_for_assignment(team_id, assignment_id)\n      AssignmentTeam.remove_team_by_id(team_id)\n    end",
+    "generated_comment": "# Accepts an invitation from another user to join a team, but only if the current team is empty and the new team does not already have any members. If these conditions are met, it releases all previously selected topics for the team and removes the team from the database.",
+    "gold_comment": "This method handles all that needs to be done upon a user accepting an invitation. First the users previous team is deleted if they were the only member of that team and topics that the old team signed up for will be deleted. Then invites the user that accepted the invite sent will be removed. Last the users team entry will be added to the TeamsUser table and their assigned topic is updated",
+    "label": "how-it-is-done"
+  },
+  {
+    "id": "330",
+    "raw_code": "def create\n    @assignment_form = AssignmentForm.new(assignment_form_params)\n    if params[:button]\n      # E2138 issue #3\n      find_existing_assignment = Assignment.find_by(name: @assignment_form.assignment.name, course_id: @assignment_form.assignment.course_id)\n      dir_path = assignment_form_params[:assignment][:directory_path]\n      find_existing_directory = Assignment.find_by(directory_path: dir_path, course_id: @assignment_form.assignment.course_id)\n      if !find_existing_assignment && !find_existing_directory && @assignment_form.save # No existing names/directories\n        @assignment_form.create_assignment_node\n        exist_assignment = Assignment.find(@assignment_form.assignment.id)\n        assignment_form_params[:assignment][:id] = exist_assignment.id.to_s\n        if assignment_form_params[:assignment][:directory_path].blank?\n          assignment_form_params[:assignment][:directory_path] = \"assignment_#{assignment_form_params[:assignment][:id]}\"\n        end",
+    "generated_comment": "# Creates a new assignment node if none exists in the database. If it does exist, updates the name and directory path fields accordingly.",
+    "gold_comment": "creates a new assignment via the assignment form",
+    "label": "how-it-is-done"
+  },
+  {
+    "id": "633",
+    "raw_code": "def serialize_sub_folder_to_json(node)\n    json = {\n      'nodeinfo' => node,\n      'name' => node.get_name,\n      'type' => node.type,\n      'key' => params[:reactParams2][:key],\n      'private' => node.get_private,\n      'creation_date' => node.get_creation_date,\n      'updated_date' => node.get_modified_date\n    }\n    if (node.type == 'CourseNode') || (node.type == 'AssignmentNode')\n      json['directory'] = node.get_directory\n      json['instructor_id'] = node.get_instructor_id\n      json['instructor'] = node.get_instructor_id ? User.find(node.get_instructor_id).name(session[:ip]) : nil\n      json['is_available'] = course_is_available?(node)\n      serialize_assignment_to_json(node, json) if node.type == 'AssignmentNode'\n    end",
+    "generated_comment": "# Serializes a sub folder to JSON format based on its type and parameters. If it is a CourseNode or AssignmentNode, it also includes additional information such as directory, instructor ID, instructor name, availability status, and assignment data.",
+    "gold_comment": "Creates a json object that can be displayed by the UI",
+    "label": "how-it-is-done"
+  },
+  {
+    "id": "641",
+    "raw_code": "def create_new_teams_for_bidding_response(teams, assignment, users_bidding_info)\n    teams.each do |user_ids|\n      if assignment.auto_assign_mentor\n        new_team = MentoredTeam.create_team_with_users(assignment.id, user_ids)\n      else\n        new_team = AssignmentTeam.create_team_with_users(assignment.id, user_ids)\n      end",
+    "generated_comment": "# Iterates over each team in the given array of teams. If auto_assign_mentor is true, it creates a MentoredTeam object with the assigned users as mentors. Otherwise, it creates an AssignmentTeam object with the assigned users as members.",
+    "gold_comment": "This method creates new AssignmentTeam objects based on the list of teams received from the webservice It also creates the corresponding TeamNode and TeamsUsers and TeamUserNode for each user in the new team while removing the users from any previous old teams",
+    "label": "how-it-is-done"
+  },
+  {
+    "id": "780",
+    "raw_code": "def self.create_team(mapping)\n    # if the author is not available, no team can be made\n    return nil if (mapping['author_id'] == 0) || mapping['author_id'].nil?\n\n    # create a participant for this user, all users have to be a participant in order to interact with an assignment\n    user = User.find(mapping['author_id'])\n    if AssignmentParticipant.where(user_id: mapping['author_id'], parent_id: mapping['reviewed_object_id']).first.nil?\n      make_participant(mapping['author_id'], mapping['reviewed_object_id'])\n    end",
+    "generated_comment": "# This method creates a new team based on the given mapping object. It first checks if the author is available (i.e., has an ID), then creates a new participant for that user. All participants must be present in order to interact with the assigned task.",
+    "gold_comment": "if a team does not already exist to act as a reviewee, create it based on the author id provided",
+    "label": "how-it-is-done"
+  }
+]

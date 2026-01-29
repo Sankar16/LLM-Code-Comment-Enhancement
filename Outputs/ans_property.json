@@ -1,0 +1,23 @@
+[
+  {
+    "id": "170",
+    "raw_code": "def update_assignment(attributes)\n    unless @assignment.update_attributes(attributes)\n      @errors = @assignment.errors.to_s\n      @has_errors = true\n    end",
+    "generated_comment": "# Updates the assignment with new attributes; sets @has_errors and @errors if validation fails.",
+    "gold_comment": "Code to update values of assignment",
+    "label": "property"
+  },
+  {
+    "id": "659",
+    "raw_code": "def get_team_reviewed_link_name(max_team_size, _response, reviewee_id, ip_address)\n    team_reviewed_link_name = if max_team_size == 1\n                                TeamsUser.where(team_id: reviewee_id).first.user.fullname(ip_address)\n                              else\n                                # E1991 : check anonymized view here\n                                Team.find(reviewee_id).name\n                              end",
+    "generated_comment": "# Returns the name of the reviewed team link based on the maximum team size and the reviewee's ID;\n# assumes valid input values for max_team_size, reviewee_id, and ip_address.",
+    "gold_comment": "For assignments with 1 team member, the following method returns user's fullname else it returns \"team name\" that a particular reviewee belongs to.",
+    "label": "property"
+  },
+  {
+    "id": "101",
+    "raw_code": "def num_reviews_greater?(reviews_required, reviews_allowed)\n    reviews_allowed && reviews_allowed != -1 && reviews_required > reviews_allowed\n  end",
+    "generated_comment": "# Returns true if the number of required reviews exceeds the allowed reviews, false otherwise # Assumptions: reviews_required and reviews_allowed are positive integers # Guarantees: returns a boolean value indicating whether the condition holds true.",
+    "gold_comment": "returns true if reviews required is greater than reviews allowed",
+    "label": "property"
+  }
+]
